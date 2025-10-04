@@ -3,6 +3,9 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import StockDetailsModal from '../components/StockDetailsModal';
 import stockService, { StockData, StockFormData } from '../services/stockService';
 import exchangeService, { Exchange } from '../services/exchangeService';
+import referenceService from '../services/referenceService';
+import { Sectors, Countries, StockPrice } from '../types';
+import stockPriceService from '../services/externalService';
 
 // Use StockData from service instead of local interface
 type Stock = StockData;
@@ -43,6 +46,14 @@ const StockPage: React.FC = () => {
 	const [exchanges, setExchanges] = useState<Exchange[]>([]);
 	const [exchangesLoading, setExchangesLoading] = useState(false);
 
+	// Stock prices
+	// const [stockPrices, setStockPrices] = useState<StockPrice | null>(null);
+	const [pricesLoading, setPricesLoading] = useState(false);
+
+	// References for dropdown
+	const [sectors, setSectors] = useState<Sectors[]>([]);
+	const [countries, setCountries] = useState<Countries[]>([]);
+
 	const fetchStocks = async () => {
     try {
       setLoading(true);
@@ -58,16 +69,77 @@ const StockPage: React.FC = () => {
     }
   };
 
+	// Fetch sectors for dropdown
+	const fetchSectors = async () => {
+		try {
+			setExchangesLoading(true);
+			const sectors = await referenceService.getSectors();
+			setSectors(sectors);
+
+		} catch (err: any) {
+			console.error('Failed to fetch sectors:', err);
+
+		} finally {
+			setExchangesLoading(false);
+		}
+	};
+
+	// Fetch countries for dropdown
+	const fetchCountries = async () => {
+		try {
+			setExchangesLoading(true);
+			const countries = await referenceService.getCountries();
+			setCountries(countries);
+
+		} catch (err: any) {
+			console.error('Failed to fetch countries:', err);
+
+		} finally {
+			setExchangesLoading(false);
+		}
+	};
+
 	// Fetch exchanges for dropdown
 	const fetchExchanges = async () => {
 		try {
 			setExchangesLoading(true);
 			const exchanges = await exchangeService.getAll();
 			setExchanges(exchanges);
+
 		} catch (err: any) {
 			console.error('Failed to fetch exchanges:', err);
+
 		} finally {
 			setExchangesLoading(false);
+		}
+	};
+
+	// Fetch prices for all stocks
+	const fetchAllStockPrices = async () => {
+		try {
+			setPricesLoading(true);
+			const updatedStocks: StockData[] = [];
+
+			for (let i = 0; i < stocks.length; i++) {
+				const stock = stocks[i];
+				try {
+					// console.log(`Fetching price for ${stock.ticker} ...`);
+					const updatedStock: StockData = await stockPriceService.fetchStockPrice(stock);
+					updatedStocks.push(updatedStock);
+
+				} catch (err) {
+					console.error(`Failed to fetch price for ${stock.ticker}:`, err);
+					updatedStocks.push(stock); // Keep original stock if price fetch failed
+				}
+			};
+			// Update the stocks state - this will trigger UI re-render
+			setStocks(updatedStocks);
+
+		} catch (err) {
+			console.error('Failed to fetch stock prices:', err);
+
+		} finally {
+			setPricesLoading(false);
 		}
 	};
 
@@ -75,7 +147,27 @@ const StockPage: React.FC = () => {
 	useEffect(() => {
 		fetchStocks();
 		fetchExchanges();
+		fetchSectors();
+		fetchCountries();
 	}, []);
+
+	useEffect(() => {
+			// Only run if stocks are loaded
+			if (stocks.length > 0) {
+					fetchAllStockPrices();
+					
+					// Set up interval to run every 5 minutes (300,000 ms)
+					const interval = setInterval(() => {
+							console.log('Auto-refreshing stock prices...');
+							fetchAllStockPrices();
+					}, 5 * 60 * 1000); // 5 minutes in milliseconds
+					
+					// Cleanup interval on component unmount or when stocks change
+					return () => {
+							clearInterval(interval);
+					};
+			}
+	}, [stocks.length]); // Only depend on stocks.length change, not the entire stocks array
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
 		const { name, value } = e.target;
@@ -108,6 +200,7 @@ const StockPage: React.FC = () => {
 				setSuccessMessage('Stock updated successfully.');
 				setIsEditing(false);
 				setEditingStock(null);
+
 			} else {
 				// Create new stock
 				const newStock = await stockService.create(formData);
@@ -129,10 +222,6 @@ const StockPage: React.FC = () => {
 			setTimeout(() => setSuccessMessage(''), 3000);
 
     } catch (err: any) {
-			// console.log('ERROR: ', err);
-			// console.log('.. ', err.response.data.detail[0].msg)
-      // setError(err.response?.data?.detail || `Failed to ${isEditing ? 'update' : 'add'} stock. Please try again.`);
-
 			if (err.response.data.detail[0].msg) {
 				const msg = err.response.data.detail[0].msg
 				const field = err.response.data.detail[0].loc[1]
@@ -174,7 +263,6 @@ const StockPage: React.FC = () => {
 
 		try {
 			await stockService.delete(stockToDelete);
-			
 			setStocks(prev => prev.filter(stock => stock.id !== stockToDelete));
 			setSuccessMessage('Stock deleted successfully.');
 			setTimeout(() => setSuccessMessage(''), 3000);
@@ -228,9 +316,21 @@ const StockPage: React.FC = () => {
 		<div className="container">
 			<h1>Stocks</h1>
 
-      {/* Exchanges List */}
+      {/* Stocks List */}
       <div className="card">
-				<h2>Stocks List</h2>
+				<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+					<h2>Stocks List</h2>
+					{stocks.length > 0 && (
+						<button 
+							onClick={fetchAllStockPrices}
+							disabled={pricesLoading}
+							className="btn btn-secondary"
+							title="Refresh stock prices"
+						>
+							{pricesLoading ? 'Refreshing...' : '🔄 Refresh Prices'}
+						</button>
+					)}
+				</div>
 
 				{loading && (
           <div style={{ textAlign: 'center', padding: '2rem' }}>
@@ -266,6 +366,7 @@ const StockPage: React.FC = () => {
 								<th>Stock Ticker</th>
                 <th>Abbreviation</th>
                 <th>Sector</th>
+								<th>Current Price</th>
 								<th>Actions</th>
               </tr>
             </thead>
@@ -279,6 +380,17 @@ const StockPage: React.FC = () => {
                   <td><strong>{stock.ticker}</strong></td>
                   <td>{stock.abbreviation}</td>
                   <td>{stock.sector}</td>
+                  <td>
+                    {pricesLoading ? (
+                      <span className="loading-price">Loading...</span>
+                    ) : stock.stockPrice ? (
+                      <span className="stock-price">
+                        ${stock.stockPrice.currentPrice.toFixed(2)}
+                      </span>
+                    ) : (
+                      <span className="price-unavailable">N/A</span>
+                    )}
+                  </td>
                   <td>
                     <div className="action-buttons">
                       <button
@@ -401,30 +513,38 @@ const StockPage: React.FC = () => {
 
           <div className="form-group">
             <label htmlFor="sector">Sector</label>
-            <input
-              type="text"
+            <select
               id="sector"
               name="sector"
-              value={formData.sector}
+              value={formData.sector || ''}
               onChange={handleChange}
               disabled={submitting}
-							maxLength={30}
-              placeholder="e.g., Technology"
-            />
+            >
+              <option value="">Select a sector...</option>
+              {sectors.map((sector) => (
+                <option key={sector.name} value={sector.name}>
+                  {sector.name}
+                </option>
+              ))}
+						</select>
           </div>
 
           <div className="form-group">
             <label htmlFor="country">Country</label>
-            <input
-              type="text"
+            <select
               id="country"
               name="country"
-              value={formData.country}
+              value={formData.country || ''}
               onChange={handleChange}
               disabled={submitting}
-							maxLength={30}
-              placeholder="e.g., United States"
-            />
+            >
+              <option value="">Select a country...</option>
+              {countries.map((country) => (
+                <option key={country.name} value={country.name}>
+                  {country.name}
+                </option>
+              ))}
+						</select>
           </div>
 
 					{errorForm && <div className="error">{errorForm}</div>}
@@ -462,7 +582,9 @@ const StockPage: React.FC = () => {
         isOpen={showStockDetails}
         onClose={closeStockDetails}
         stock={selectedStock}
+        exchange={exchanges.find((exchange) => exchange.id === selectedStock?.exchange_id) ?? null}
         onEdit={handleEdit}
+        onDelete={handleDelete}
       />
 
       {/* Delete Confirmation Dialog */}

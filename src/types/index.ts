@@ -23,28 +23,11 @@ export interface AuthResponse {
 }
 
 // Stock types
-export interface Stock {
-  id: number;
-  symbol: string;
-  name: string;
-  current_price: number;
-  change: number;
-  change_percent: number;
-}
-
-export interface Holding {
-  id: number;
-  user_id: number;
-  stock_id: number;
-  symbol: string;
-  name: string;
-  shares: number;
-  purchase_price: number;
-  current_price: number;
-  total_value: number;
-  gain_loss: number;
-  gain_loss_percent: number;
-  purchase_date: string;
+export interface StockPrice {
+  ticker: string;
+  abbreviation: string;
+  currentPrice: number;
+  fetchedDateTime: string;
 }
 
 // API response types

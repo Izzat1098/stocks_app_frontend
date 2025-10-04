@@ -12,3 +12,5 @@ export const referenceService = {
     return response.data;
   },
 };
+
+export default referenceService;

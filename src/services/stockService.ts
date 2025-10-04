@@ -1,5 +1,5 @@
 import api from './api';
-import { Stock, Holding } from '../types';
+import { StockPrice } from '../types';
 
 // Stock interfaces for the CRUD operations
 export interface StockData {
@@ -12,6 +12,7 @@ export interface StockData {
   sector: string;
   country: string;
   ai_description: string;
+  stockPrice?: StockPrice;
 }
 
 export interface StockFormData {
@@ -50,43 +51,43 @@ export const stockService = {
   delete: async (id: number): Promise<void> => {
     await api.delete(`/stocks/${id}`);
   },
-
-  // Legacy methods (keeping for backward compatibility)
-  getStocks: async (): Promise<Stock[]> => {
-    const response = await api.get('/stocks');
-    return response.data;
-  },
-
-  getStock: async (symbol: string): Promise<Stock> => {
-    const response = await api.get(`/stocks/${symbol}`);
-    return response.data;
-  },
-
-  getHoldings: async (): Promise<Holding[]> => {
-    const response = await api.get('/holdings');
-    return response.data;
-  },
-
-  addHolding: async (holding: {
-    stock_symbol: string;
-    shares: number;
-    purchase_price: number;
-  }): Promise<Holding> => {
-    const response = await api.post('/holdings', holding);
-    return response.data;
-  },
-
-  updateHolding: async (id: number, holding: {
-    shares?: number;
-    purchase_price?: number;
-  }): Promise<Holding> => {
-    const response = await api.put(`/holdings/${id}`, holding);
-    return response.data;
-  },
-
-  deleteHolding: async (id: number): Promise<void> => {
-    await api.delete(`/holdings/${id}`);
-  },
 };
+  // Legacy methods (keeping for backward compatibility)
+  // getStocks: async (): Promise<Stock[]> => {
+  //   const response = await api.get('/stocks');
+  //   return response.data;
+  // },
+
+  // getStock: async (symbol: string): Promise<Stock> => {
+  //   const response = await api.get(`/stocks/${symbol}`);
+  //   return response.data;
+  // },
+
+  // getHoldings: async (): Promise<Holding[]> => {
+  //   const response = await api.get('/holdings');
+  //   return response.data;
+  // },
+
+  // addHolding: async (holding: {
+  //   stock_symbol: string;
+  //   shares: number;
+  //   purchase_price: number;
+  // }): Promise<Holding> => {
+  //   const response = await api.post('/holdings', holding);
+  //   return response.data;
+  // },
+
+  // updateHolding: async (id: number, holding: {
+  //   shares?: number;
+  //   purchase_price?: number;
+  // }): Promise<Holding> => {
+  //   const response = await api.put(`/holdings/${id}`, holding);
+  //   return response.data;
+  // },
+
+  // deleteHolding: async (id: number): Promise<void> => {
+  //   await api.delete(`/holdings/${id}`);
+  // },
+
 
 export default stockService;

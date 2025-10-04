@@ -1,19 +1,24 @@
 import React from 'react';
 import Modal from './Modal';
 import { StockData } from '../services/stockService';
+import { Exchange } from '../services/exchangeService';
 
 interface StockDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   stock: StockData | null;
+  exchange: Exchange | null;
   onEdit?: (stock: StockData) => void;
+  onDelete?: (stockId: number) => void;
 }
 
 const StockDetailsModal: React.FC<StockDetailsModalProps> = ({
   isOpen,
   onClose,
   stock,
-  onEdit
+  exchange,
+  onEdit,
+  onDelete
 }) => {
   if (!stock) return null;
 
@@ -24,11 +29,23 @@ const StockDetailsModal: React.FC<StockDetailsModalProps> = ({
     }
   };
 
+  const handleDelete = () => {
+    if (onDelete && stock.id !== undefined) {
+      onDelete(stock.id);
+      onClose();
+    }
+  };
+
   const footer = (
     <>
       {onEdit && (
         <button onClick={handleEdit} className="btn btn-primary">
           Edit Stock
+        </button>
+      )}
+      {onDelete && (
+        <button onClick={handleDelete} className="btn btn-danger">
+          Delete Stock
         </button>
       )}
       <button onClick={onClose} className="btn btn-secondary">
@@ -41,7 +58,7 @@ const StockDetailsModal: React.FC<StockDetailsModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Stock Details"
+      title={`Stock Details - ${stock.ticker} | ${stock.abbreviation}`}
       footer={footer}
       size="medium"
     >
@@ -63,7 +80,7 @@ const StockDetailsModal: React.FC<StockDetailsModalProps> = ({
         
         <div className="detail-item">
           <label>Exchange:</label>
-          <span>{stock.exchange_id || 'N/A'}</span>
+          <span>{exchange ? `${exchange.name} (${exchange.abbreviation})` : 'N/A'}</span>
         </div>
         
         <div className="detail-item">
