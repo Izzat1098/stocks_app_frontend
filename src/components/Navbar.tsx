@@ -51,8 +51,8 @@ const Navbar: React.FC = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/stocks" className="navbar-link" onClick={closeMenu}>
-                  Stocks
+                <Link to="/financials" className="navbar-link" onClick={closeMenu}>
+                  Financial Data
                 </Link>
               </li>
               <li>

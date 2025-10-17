@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import StockPage from './pages/StockPage';
 import ExchangePage from './pages/ExchangePage';
+import FinancialPage from './pages/FinancialPage';
 
 const App: React.FC = () => {
   return (
@@ -32,6 +33,14 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <ExchangePage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/financials" 
+              element={
+                <ProtectedRoute>
+                  <FinancialPage />
                 </ProtectedRoute>
               } 
             />

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { AuthResponse, UserLogin, UserRegistration, User } from '../types';
+import { StockData } from '../services/stockService';
 
 const API_BASE_URL = process.env.API_URL || 'http://localhost:8000';
 
@@ -36,6 +37,7 @@ api.interceptors.response.use(
 );
 
 export const authService = {
+  // Auth service with backend API
   register: async (userData: UserRegistration): Promise<AuthResponse> => {
     const response = await api.post('/users/register', userData);
     return response.data;
@@ -80,6 +82,16 @@ export const authService = {
   isAuthenticated: () => {
     return !!localStorage.getItem('access_token');
   },
+};
+
+
+export const aiService = {
+// AI service with backend API
+  generateDescription: async (stock: StockData): Promise<StockData> => {
+    const response = await api.get(`/stocks/${stock.id}/ai_description`);
+    return response.data;
+  },
+
 };
 
 export default api;

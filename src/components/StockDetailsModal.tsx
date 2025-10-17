@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { StockData } from '../services/stockService';
 import { Exchange } from '../services/exchangeService';
+import { aiService } from '../services/api';
 
 interface StockDetailsModalProps {
   isOpen: boolean;
@@ -20,6 +21,20 @@ const StockDetailsModal: React.FC<StockDetailsModalProps> = ({
   onEdit,
   onDelete
 }) => {
+  
+  const [aiDescription, setAiDescription] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [errorAIDesc, setErrorAIDesc] = useState<string>('');
+  // const [localStock, setLocalStock] = useState<StockData | null>(stock);
+
+  useEffect(() => {
+    if (stock) {
+      setAiDescription(stock.ai_description || '');
+      setIsGenerating(false);
+      setErrorAIDesc('');
+    }
+  }, [stock]);
+
   if (!stock) return null;
 
   const handleEdit = () => {
@@ -33,6 +48,28 @@ const StockDetailsModal: React.FC<StockDetailsModalProps> = ({
     if (onDelete && stock.id !== undefined) {
       onDelete(stock.id);
       onClose();
+    }
+  };
+
+  const handleGenerateAI = async () => {
+    try {
+      setIsGenerating(true);
+      const updatedStock: StockData = await aiService.generateDescription(stock);
+
+      setAiDescription(updatedStock.ai_description);
+      // setLocalStock(updatedStock);
+
+    } catch (error: any) {
+      console.error('Error generating AI description:', error);
+      
+      if (error.response.status === 404) {
+        setErrorAIDesc(`There is no stock with name "${stock.company_name}" listed on this exchange. Please recheck the stock details.`);
+      } else {
+        setErrorAIDesc('Failed to generate AI description. Please try again later.');
+      }
+
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -99,8 +136,25 @@ const StockDetailsModal: React.FC<StockDetailsModalProps> = ({
         </div>
         
         <div className="detail-item full-width">
-          <label>AI Description:</label>
-          <span>{stock.ai_description || 'N/A'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <label>AI Description:</label>
+            <button 
+              onClick={handleGenerateAI}
+              className="btn btn-sm btn-outline"
+              title="Generate AI description"
+              disabled={isGenerating}
+            >
+              {isGenerating ? '⏳ Generating...' : '🤖 Generate'}
+            </button>
+          </div>
+
+          {errorAIDesc && (
+            <span className="error">{errorAIDesc}</span>
+          )}
+          {!errorAIDesc &&(
+            <span>{isGenerating ? 'Generating...' : (aiDescription || 'N/A')}</span>
+          )}
+          
         </div>
       </div>
     </Modal>
