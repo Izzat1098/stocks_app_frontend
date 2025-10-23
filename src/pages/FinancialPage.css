@@ -67,3 +67,13 @@
   display: flex;
   justify-content: flex-end;
 }
+
+.separator-label {
+  font-weight: 600;
+  /* background-color: #f8f9fa; */
+}
+
+.separator-row {
+  /* background-color: #86c8d4 !important; */
+  background-color: #e8f4fd !important;
+}

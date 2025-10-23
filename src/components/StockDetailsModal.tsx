@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Modal from './Modal';
 import { StockData } from '../services/stockService';
 import { Exchange } from '../services/exchangeService';
@@ -21,6 +22,7 @@ const StockDetailsModal: React.FC<StockDetailsModalProps> = ({
   onEdit,
   onDelete
 }) => {
+  const navigate = useNavigate();
   
   const [aiDescription, setAiDescription] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -51,6 +53,13 @@ const StockDetailsModal: React.FC<StockDetailsModalProps> = ({
     }
   };
 
+  const handleViewFinancials = () => {
+    if (stock.id !== undefined) {
+      navigate('/financials', { state: { stockId: stock.id } });
+      onClose();
+    }
+  };
+
   const handleGenerateAI = async () => {
     try {
       setIsGenerating(true);
@@ -75,6 +84,9 @@ const StockDetailsModal: React.FC<StockDetailsModalProps> = ({
 
   const footer = (
     <>
+      <button onClick={handleViewFinancials} className="btn btn-primary">
+        📊 View Financials
+      </button>
       {onEdit && (
         <button onClick={handleEdit} className="btn btn-primary">
           Edit Stock

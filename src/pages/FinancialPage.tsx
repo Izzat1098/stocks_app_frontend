@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -11,7 +12,7 @@ import {
   Legend,
 } from 'chart.js';
 import { stockService, StockData } from '../services/stockService';
-import financialService, { FinancialData, FinancialDataWithMeta, FinancialMetric, YearlyFinancials } from '../services/financialService';
+import financialService, { FinancialData, FinancialDataAll, FinancialDataCalculated, FinancialDataWithMeta, FinancialMetric, YearlyFinancials, YearlyFinancialsCalculated } from '../services/financialService';
 import promptService, { PromptResponse } from '../services/promptService';
 import './FinancialPage.css';
 
@@ -28,12 +29,15 @@ ChartJS.register(
 
 
 const FinancialPage: React.FC = () => {
+  const location = useLocation();
   const [stocks, setStocks] = useState<StockData[]>([]);
   const [selectedStockId, setSelectedStockId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [years, setYears] = useState<string[]>([]);
   const [newYear, setNewYear] = useState<string>('');
   const [financialData, setFinancialData] = useState<FinancialData>({});
+  const [financialDataCalculated, setFinancialDataCalculated] = useState<FinancialDataCalculated>({});
+  const [financialDataAll, setFinancialDataAll] = useState<FinancialDataAll>({});
   const [editingYear, setEditingYear] = useState<string | null>(null);
   const [tempYearValue, setTempYearValue] = useState<string>('');
   const [showPasteInstructions, setShowPasteInstructions] = useState<boolean>(false);
@@ -49,12 +53,146 @@ const FinancialPage: React.FC = () => {
   const DEFAULT_UNIT = '$';
   const DEFAULT_DECIMALS = 0;
 
-  const metrics: FinancialMetric[] = [
-    { key: 'sharePrice', label: 'Share Price', unit: '$', decimals: 2 },
-    { key: 'revenue', label: 'Revenue', unit: '$', decimals: 0 },
-    { key: 'earnings', label: 'Earnings', unit: '$', decimals: 0 },
-    { key: 'earningsPerShare', label: 'Earnings Per Share', unit: '$', decimals: 2 },
+  // Only define custom settings for specific metrics
+  const metricOverrides: Partial<Record<keyof YearlyFinancials | keyof YearlyFinancialsCalculated | any, Partial<FinancialMetric>>> = {
+    // per shares
+    share_price_at_report_date: { decimals: 2 },
+    max_share_price: { decimals: 2 },
+    min_share_price: { decimals: 2 },
+    number_of_shares: {unit: '' , hoverText: 'Calculated as: Profit After Tax For Shareholders / Earnings per Share' },
+    // Price/Earnings Ratios
+    price_earnings_ratio_report_date: { unit: ''},
+    price_earnings_ratio_max: { unit: ''},
+    price_earnings_ratio_min: { unit: ''},
+    // profit loss
+    gross_margin: { unit: '%', decimals: 1 },
+    profit_before_tax_margin: { unit: '%', decimals: 1 },
+    profit_after_tax_for_shareholders_margin: { unit: '%', decimals: 1 },
+    earnings_per_share: { decimals: 2 },
+    // asset metrics
+    net_cash: { hoverText: 'Calculated as: Cash - Total Current Liabilities' },
+    net_net_cash: { hoverText: 'Calculated as: Cash - Total Liabilities' },
+    net_current_assets: { hoverText: 'Calculated as: Total Current Assets - Total Current Liabilities' },
+    net_net_current_assets: { hoverText: 'Calculated as: Total Current Assets - Total Liabilities' },
+    net_tangible_assets: { hoverText: 'Calculated as: Total Assets - Intangible Assets - Total Liabilities - Non Controlling Interests' },
+    // others
+    dividend_per_share: { decimals: 2 },
+    dividend_payout_ratio: { unit: '', decimals: 1, hoverText: 'Calculated as: Dividend per Share / Earnings per Share' },
+    debt_to_equity_ratio: { unit: '', decimals: 1, hoverText: 'Calculated as: Total Liabilities / Total Equity'  },
+    free_cash_flow: { hoverText: 'Calculated as: Net Cash from Operating Activities - Investments in PPE' },
+    // All others will use defaults
+  };
+
+
+  const keyToLabel = (input: string): string => {
+    return input
+      .replace(/_/g, ' ')                                // Replace underscores with spaces
+      .split(' ')                                        // Split into words
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize each word
+      .join(' ');                                        // Join back with spaces
+  };
+
+
+  const orderedKeysWithSeparators: (keyof YearlyFinancials | keyof YearlyFinancialsCalculated | any)[] = [
+    'separator-Share_Prices',
+    'share_price_at_report_date',
+    'max_share_price',
+    'min_share_price',
+    'number_of_shares',
+    'price_earnings_ratio_report_date',
+    'price_earnings_ratio_max',
+    'price_earnings_ratio_min',
+    'separator-Profit_&_Loss',
+    'revenue',
+    'gross_profit',
+    'gross_margin',
+    'profit_before_tax',
+    'profit_before_tax_margin',
+    'profit_after_tax',
+    'profit_after_tax_for_shareholders',
+    'profit_after_tax_for_shareholders_margin',
+    'earnings_per_share',
+    'dividend_per_share',
+    'dividend_amount',
+    'dividend_payout_ratio',
+    'separator-Current_Assets',
+    'cash',
+    'inventories',
+    'receivables',
+    'investments_in_securities',
+    'other_current_assets',
+    'total_current_assets',
+    'separator-Non-Current_Assets',
+    'property_plant_equipment',
+    'land_and_real_estate',
+    'investments_subsidiaries',
+    'intangible_assets',
+    'non_current_investments',
+    'other_non_current_assets',
+    'total_non_current_assets',
+    'total_assets',
+    'separator-Current_Liabilities',
+    'borrowings',
+    'payables',
+    'lease_liabilities',
+    'tax_liabilities',
+    'other_current_liabilities',
+    'total_current_liabilities',
+    'separator-Non-Current_Liabilities',
+    'long_term_debts',
+    'long_term_lease_liabilities',
+    'deferred_tax_liabilities',
+    'other_non_current_liabilities',
+    'total_non_current_liabilities',
+    'total_liabilities',
+    'separator-Asset_Metrics',
+    'net_cash',
+    'net_net_cash',
+    'net_current_assets',
+    'net_net_current_assets',
+    'net_tangible_assets',
+    'debt_to_equity_ratio',
+    'separator-Equities',
+    'share_capital',
+    'retained_earnings',
+    'reserves',
+    'equity_attributable_to_shareholders',
+    'non_controlling_interests',
+    'total_equity',
+    'total_liabilities_and_equity',
+    'separator-Cash_Flows',
+    'net_cash_from_operating_activities',
+    'investments_in_ppe',
+    'investments_in_subsidiaries',
+    'investments_in_acquisitions',
+    'free_cash_flow',
+    'separator-YOY_and_CAGR_Increases'
   ];
+
+
+  // Auto-generate metrics from defined keys above
+  const getMetrics = (): FinancialMetric[] => {
+    return orderedKeysWithSeparators
+      .filter(key => !key.toLowerCase().includes('separator')) // Exclude keys containing 'separator'
+      .map(key => ({
+        key,
+        label: keyToLabel(key),
+        unit: metricOverrides[key]?.unit ?? DEFAULT_UNIT,
+        decimals: metricOverrides[key]?.decimals ?? DEFAULT_DECIMALS,
+        hoverText: metricOverrides[key]?.hoverText ?? '',
+    }));
+
+  };
+
+  const metrics = getMetrics();
+
+
+  // const metrics: FinancialMetric[] = [
+  //   { key: 'sharePrice', label: 'Share Price', unit: '$', decimals: 2 },
+  //   { key: 'revenue', label: 'Revenue', unit: '$', decimals: 0 },
+  //   { key: 'earnings', label: 'Earnings', unit: '$', decimals: 0 },
+  //   { key: 'earningsPerShare', label: 'Earnings Per Share', unit: '$', decimals: 2 },
+  // ];
 
   // Format number with commas and decimals
   const formatNumber = (value: number, decimals: number = 0): string => {
@@ -106,7 +244,11 @@ const FinancialPage: React.FC = () => {
         const stocksData = await stockService.getAll();
         setStocks(stocksData);
 
-        if (stocksData.length > 0) {
+        // Check if stockId was passed via navigation
+        const navigationState = location.state as { stockId?: number } | null;
+        if (navigationState?.stockId) {
+          setSelectedStockId(navigationState.stockId);
+        } else if (stocksData.length > 0) {
           setSelectedStockId(stocksData[0].id || null);
         }
 
@@ -118,35 +260,61 @@ const FinancialPage: React.FC = () => {
       }
     };
     fetchStocks();
-  }, []);
+  }, [location]);
 
 
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
     const fetchFinancialData = async () => {
       if (!selectedStockId) return;
 
       try {
-        const data = await financialService.getFinancialData(selectedStockId);
-        if (data) {
+        //  fetch financial data from API/DB
+        const data = await financialService.getFinancialData(selectedStockId, controller.signal);
+        
+        if (isMounted && data) {
+          // calculate derived metrics from fetched data
+          const calculatedMetrics: FinancialDataCalculated = financialService.calculateMetrics(data.data);
+
+          // merge data
+          const mergedData: FinancialDataAll = {};
+          Object.keys(data.data).forEach(year => {
+            mergedData[year] = {
+              ...data.data[year],
+              ...calculatedMetrics[year]
+            };
+          });
+
+          // update states
           setFinancialData(data.data);
+          setFinancialDataCalculated(calculatedMetrics);
+          setFinancialDataAll(mergedData);
           setOriginalFinancialData(JSON.parse(JSON.stringify(data.data))); // Deep copy
+
           const fetchedYears = Object.keys(data.data).sort();
           setYears(fetchedYears);
           setHasUnsavedChanges(false);
-        } else {
-          initStartingData();
+          setErrorForm('');
         }
-        setErrorForm('');
 
       } catch (error: any) {
-        if (error.response?.status === 404) {
-          console.log('No financial data found for this stock, starting fresh');
-          setErrorForm('No financial data found for this stock. You can start entering data.');
-        } else {
-          console.error('Error fetching financial data:', error);
-          setErrorForm('Error fetching financial data. Please try again.');
+        if (error.name === 'AbortError') {
+          console.log('Fetch aborted');
+          return;
         }
-        initStartingData();
+
+        if (isMounted) {
+          if (error.response?.status === 404) {
+            console.log('No financial data found for this stock, starting fresh');
+            setErrorForm('No financial data found for this stock. You can start entering data.');
+          } else {
+            console.error('Error fetching financial data:', error);
+            setErrorForm('Error fetching financial data. Please try again.');
+          }
+          initStartingData();
+        }
       }
     };
 
@@ -154,7 +322,7 @@ const FinancialPage: React.FC = () => {
       setLoadingPrompts(true);
       try {
         const prompts = await promptService.getAllPrompts( );
-        console.log('Fetched AI prompts for stock:', prompts);
+        // console.log('Fetched AI prompts for stock:', prompts);
         if (prompts) {
           setAiPrompts(prompts);
         }
@@ -162,7 +330,7 @@ const FinancialPage: React.FC = () => {
         if (selectedStockId) {
           const responses = await promptService.getAllResponses(selectedStockId);
           if (responses) {
-            console.log('Fetched AI responses for stock:', responses);
+            // console.log('Fetched AI responses for stock:', responses);
             setAiResponses(responses);
           }
         }
@@ -179,6 +347,11 @@ const FinancialPage: React.FC = () => {
 
     fetchFinancialData();
     fetchAiPrompts();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [selectedStockId]);
 
   // Detect changes in financial data
@@ -187,6 +360,24 @@ const FinancialPage: React.FC = () => {
     setHasUnsavedChanges(hasChanges);
   }, [financialData, originalFinancialData]);
 
+
+  // Recalculate when financialData changes (user edits)
+  useEffect(() => {
+    if (!selectedStockId) return;
+
+    const calculatedMetrics = financialService.calculateMetrics(financialData);
+    setFinancialDataCalculated(calculatedMetrics);
+
+    const mergedData: FinancialDataAll = {};
+    Object.keys(financialData).forEach(year => {
+      mergedData[year] = {
+        ...financialData[year],
+        ...calculatedMetrics[year]
+      };
+    });
+
+    setFinancialDataAll(mergedData);
+  }, [financialData, selectedStockId]);
 
   const selectedStock = stocks.find(stock => stock.id === selectedStockId);
   
@@ -213,52 +404,47 @@ const FinancialPage: React.FC = () => {
     event.preventDefault();
     
     const pasteData = event.clipboardData.getData('text');
+    console.log('Pasted data:', pasteData);
     const lines = pasteData.trim().split('\n');
+
+    // const metric = metrics.find(m => m.key === metricKey);
+    // if (!metric) return;
+    const metricIndex = metrics.findIndex(m => m.key === metricKey);
+    if (metricIndex < 0) return; // Invalid metricKey
     
     // If pasting multiple lines, try to map them to metrics
     if (lines.length > 1) {
       const updatedData = { ...financialData };
       
-      lines.forEach((line, index) => {
+      // lines.forEach((line, lineIndex) => {
+      for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+        const line = lines[lineIndex];
+        const metricLineIndex = lineIndex + metricIndex;
+        const metric = metrics[metricLineIndex];
+        if (!metric) break;
+
+        const isCalculated = metric.key in ({} as YearlyFinancialsCalculated);
+        if (isCalculated) break; // Skip read-only fields
+
         const value = parseFormattedNumber(line.trim());
-        if (value && metrics[index]) {
+        if (value) {
           if (!updatedData[year]) {
             updatedData[year] = {};
           }
-          updatedData[year][metrics[index].key] = value;
+          const metricKey = metric.key as keyof YearlyFinancials;
+          updatedData[year][metricKey] = value;
         }
-      });
+      };
       
       setFinancialData(updatedData);
+
     } else {
       // Single value paste
-      const value = parseFormattedNumber(pasteData);
+      const value = parseFormattedNumber(pasteData.trim());
       updateFinancialData(year, metricKey, value);
     }
   };
 
-  // Handle paste for entire column (year)
-  const handleColumnPaste = async (event: React.ClipboardEvent, year: string) => {
-    event.preventDefault();
-    
-    const pasteData = event.clipboardData.getData('text');
-    const lines = pasteData.trim().split('\n');
-    
-    const updatedData = { ...financialData };
-    if (!updatedData[year]) {
-      updatedData[year] = {};
-    }
-    
-    // Map lines to metrics in order
-    lines.forEach((line, index) => {
-      const value = parseFormattedNumber(line.trim());
-      if (value && metrics[index]) {
-        updatedData[year][metrics[index].key] = value;
-      }
-    });
-    
-    setFinancialData(updatedData);
-  };
 
   // Handle paste for entire row (metric across all years)
   const handleRowPaste = async (event: React.ClipboardEvent, metricKey: keyof FinancialData[string]) => {
@@ -325,7 +511,8 @@ const FinancialPage: React.FC = () => {
 
     } catch (error) {
       console.error('Error generating AI response:', error);
-      alert('Failed to generate AI response. Please try again.');
+      // alert('Failed to generate AI response. Please try again.');
+
     } finally {
       setGeneratingResponse(null);
     }
@@ -477,13 +664,12 @@ const FinancialPage: React.FC = () => {
 
   // Handle Enter key navigation
   const handleKeyDown = (e: React.KeyboardEvent, year: string, metricKey: keyof FinancialData[string]) => {
-    if (e.key === 'Enter') {
+    const currentMetricIndex = metrics.findIndex(m => m.key === metricKey);
+
+    if (e.key === 'Enter' || e.key === 'ArrowDown') {
       e.preventDefault();
-      
-      // Find current metric index
-      const currentMetricIndex = metrics.findIndex(m => m.key === metricKey);
     
-      // Move to next row (next metric)
+      // Move to below row (next metric)
       if (currentMetricIndex < metrics.length - 1) {
         const nextMetric = metrics[currentMetricIndex + 1];
         const nextInputId = `input-${year}-${nextMetric.key}`;
@@ -492,15 +678,51 @@ const FinancialPage: React.FC = () => {
           nextInput?.focus();
         }
       }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+
+      // Move to above row (previous metric)
+      if (currentMetricIndex > 0) {
+        const prevMetric = metrics[currentMetricIndex - 1];
+        const prevInputId = `input-${year}-${prevMetric.key}`;
+        const prevInput = document.getElementById(prevInputId);
+        if (prevInput) {
+          prevInput?.focus();
+        }
+      }
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      // Move to next year column
+      const currentYearIndex = years.indexOf(year);
+      if (currentYearIndex < years.length - 1) {
+        const nextYear = years[currentYearIndex + 1];
+        const nextInputId = `input-${nextYear}-${metricKey}`;
+        const nextInput = document.getElementById(nextInputId);
+        if (nextInput) {
+          nextInput?.focus();
+        }
+      }
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      // Move to previous year column
+      const currentYearIndex = years.indexOf(year);
+      if (currentYearIndex > 0) {
+        const prevYear = years[currentYearIndex - 1];
+        const prevInputId = `input-${prevYear}-${metricKey}`;
+        const prevInput = document.getElementById(prevInputId);
+        if (prevInput) {
+          prevInput?.focus();
+        }
+      }
     }
   };
 
   // Calculate price to earnings ratio
   const calculatePERatio = (currentYear: string): number | null => {
     const currentYearIndex = years.indexOf(currentYear);
-    const currentSharePrice = financialData[currentYear]?.sharePrice;
-    const currentEarningsPerShare = financialData[currentYear]?.earningsPerShare;
-    
+    const currentSharePrice = financialData[currentYear]?.share_price_at_report_date;
+    const currentEarningsPerShare = financialData[currentYear]?.earnings_per_share;
+
     if (!currentSharePrice || !currentEarningsPerShare || currentSharePrice === 0 || currentEarningsPerShare === 0) return null;
     
     return currentSharePrice / currentEarningsPerShare;
@@ -547,7 +769,7 @@ const FinancialPage: React.FC = () => {
     datasets: [
       {
         label: 'Share Price ($)',
-        data: years.map(year => financialData[year]?.sharePrice || 0),
+        data: years.map(year => financialData[year]?.share_price_at_report_date || 0),
         borderColor: 'rgb(75, 192, 192)',
         backgroundColor: 'rgba(75, 192, 192, 0.2)',
         yAxisID: 'y',
@@ -557,7 +779,7 @@ const FinancialPage: React.FC = () => {
       },
       {
         label: 'Earnings Per Share ($)',
-        data: years.map(year => financialData[year]?.earningsPerShare || 0),
+        data: years.map(year => financialData[year]?.earnings_per_share || 0),
         borderColor: 'rgb(255, 99, 132)',
         backgroundColor: 'rgba(255, 99, 132, 0.2)',
         yAxisID: 'y',
@@ -577,7 +799,7 @@ const FinancialPage: React.FC = () => {
       },
       {
         label: 'Earnings ($)',
-        data: years.map(year => financialData[year]?.earnings || 0),
+        data: years.map(year => financialData[year]?.profit_after_tax_for_shareholders || 0),
         borderColor: 'rgb(255, 206, 86)',
         backgroundColor: 'rgba(255, 206, 86, 0.2)',
         yAxisID: 'y1',
@@ -664,8 +886,8 @@ const FinancialPage: React.FC = () => {
         },
         suggestedMax: Math.max(
           ...years.map(year => Math.max(
-            financialData[year]?.sharePrice || 0,
-            financialData[year]?.earningsPerShare || 0
+            financialData[year]?.share_price_at_report_date || 0,
+            financialData[year]?.earnings_per_share || 0
           ))
         ) * 1.1, // Add 10% padding
       },
@@ -693,7 +915,7 @@ const FinancialPage: React.FC = () => {
         suggestedMax: Math.max(
           ...years.map(year => Math.max(
             financialData[year]?.revenue || 0,
-            financialData[year]?.earnings || 0
+            financialData[year]?.profit_after_tax_for_shareholders || 0
           ))
         ) * 1.1, // Add 10% padding
       },
@@ -788,8 +1010,8 @@ const FinancialPage: React.FC = () => {
             {showPasteInstructions && (
               <ul className="paste-instructions-content">
                 <li><strong>Single Value:</strong> Click on any cell and paste (Ctrl+V)</li>
-                <li><strong>Row Data:</strong> Click on metric label (e.g. Share Price) and paste values for all years</li>
-                <li><strong>Column Data:</strong> Click on year header (e.g. 2020) and paste values for all metrics</li>
+                <li><strong>Row Data:</strong> Click on metric label (e.g. Share Price) and paste (Ctrl+V) values for multiple years</li>
+                <li><strong>Column Data:</strong> Click on any cell and paste (Ctrl+V)</li>
               </ul>
             )}
 
@@ -802,8 +1024,7 @@ const FinancialPage: React.FC = () => {
                 <th>Financial Metric</th>
                 {years.map(year => (
                   <th key={year} className="year-header"
-                      onPaste={(e) => handleColumnPaste(e, year)}
-                      title={`Paste column data for ${year}`}>
+                      title={`Column data for ${year}`}>
                     <div className="year-header-content">
                       {editingYear === year ? (
                         <input
@@ -838,61 +1059,94 @@ const FinancialPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {metrics.map(metric => (
-                <tr key={metric.key}>
-                  <td className="metric-label"
-                      onPaste={(e) => handleRowPaste(e, metric.key)}
-                      title={`Paste row data for ${metric.label} (values for all years)`}>
-                    {metric.label} ({metric.unit})
-                  </td>
-                  {years.map(year => (
-                    <td key={`${year}-${metric.key}`}>
-                      <input
-                        type="text"
-                        id={`input-${year}-${metric.key}`}
-                        value={(() => {
-                          const inputKey = `${year}-${metric.key}`;
-                          // Show raw value during editing, formatted value otherwise
-                          if (inputValues[inputKey] !== undefined) {
-                            return inputValues[inputKey];
-                          }
-                          return financialData[year]?.[metric.key] 
-                            ? formatNumber(financialData[year]![metric.key]!, metric.decimals || 0)
-                            : '';
-                        })()}
-                        onChange={(e) => handleInputChange(year, metric.key, e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, year, metric.key)}
-                        onFocus={() => handleInputFocus(year, metric.key)}
-                        onBlur={() => handleInputBlur(year, metric.key)}
-                        onPaste={(e) => handlePaste(e, year, metric.key)}
-                        className="financial-input"
-                        placeholder={metric.decimals === 2 ? "0.00" : "0"}
-                        title={`Paste ${metric.label} data for ${year}`}
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-
-              {/* P/E Row */}
-              <tr className="calculated-row">
-                <td className="metric-label calculated-label">
-                  P/E Ratio
-                </td>
-                {years.map(year => {
-                  const peRatio = calculatePERatio(year);
+              {orderedKeysWithSeparators.map(key => {
+                // Handle separatator rows
+                if (key.toLowerCase().includes('separator')) {
                   return (
-                    <td key={`${year}-pe-ratio`} className="calculated-cell">
-                      <div className="calculated-value">
-                        {peRatio !== null 
-                          ? `${peRatio.toFixed(1)}`
-                          : '-'
-                        }
-                      </div>
-                    </td>
+                    <tr key={key} className="separator-row">
+                      <td colSpan={years.length + 1} className="separator-row">
+                        <div className="separator-label">
+                          {key.replace('separator-', '').replace(/_/g, ' ')}
+                        </div>
+                      </td>
+                    </tr>
                   );
-                })}
-              </tr>
+                }
+
+                // Find the metric config
+                const metric = metrics.find(m => m.key === key);
+                if (!metric) return null;
+
+                // Check if this is a calculated field (read-only)
+                const isCalculated = years.length > 0 && financialDataCalculated[years[0]] && key in financialDataCalculated[years[0]];
+                // console.log('this is in financialDataCalculated[years[0]]', financialDataCalculated[years[0]]);
+
+                return (
+                  <tr key={metric.key} className={isCalculated ? 'calculated-row' : ''}>
+                    <td className={`metric-label ${isCalculated ? 'calculated-label' : ''}`}
+                        onPaste={(e) => {
+                          const metricKey = metric.key as keyof YearlyFinancials;
+                          handleRowPaste(e, metricKey)}}
+                        title={metric.hoverText 
+                          ? metric.hoverText 
+                          : isCalculated 
+                          ? ''
+                          : `Click here and paste row data for ${metric.label}`}>
+                      {metric.label} {metric.unit === '' ? '' : `(${metric.unit})`}
+                    </td>
+                    {years.map(year => (
+                      // Read-only calculated value
+                      isCalculated ? (
+                        <td key={`${year}-${metric.key}`} className="calculated-cell">
+                          <div className="calculated-value">
+                            {financialDataAll[year]?.[metric.key] 
+                              ? formatNumber(financialDataAll[year]![metric.key]!, metric.decimals || 0)
+                              : '-'
+                            }
+                          </div>
+                        </td>
+                        ) : (
+                          // Editable input
+                        <td key={`${year}-${metric.key}`}>
+                          <input
+                            type="text"
+                            id={`input-${year}-${metric.key}`}
+                            value={(() => {
+                              const inputKey = `${year}-${metric.key}`;
+                              // Show raw value during editing, formatted value otherwise
+                              if (inputValues[inputKey] !== undefined) {
+                                return inputValues[inputKey];
+                              }
+                              const metricKey = metric.key as keyof YearlyFinancials;
+                              return financialData[year]?.[metricKey] 
+                                ? formatNumber(financialData[year]![metricKey]!, metric.decimals || 0)
+                                : '';
+                            })()}
+                            onChange={(e) => {
+                              const metricKey = metric.key as keyof YearlyFinancials;
+                              handleInputChange(year, metricKey, e.target.value)}}
+                            onKeyDown={(e) => {
+                              const metricKey = metric.key as keyof YearlyFinancials;
+                              handleKeyDown(e, year, metricKey)}}
+                            onFocus={() => {
+                              const metricKey = metric.key as keyof YearlyFinancials;
+                              handleInputFocus(year, metricKey)}}
+                            onBlur={() => {
+                              const metricKey = metric.key as keyof YearlyFinancials;
+                              handleInputBlur(year, metricKey)}}
+                            onPaste={(e) => {
+                              const metricKey = metric.key as keyof YearlyFinancials;
+                              handlePaste(e, year, metricKey)}}
+                            className="financial-input"
+                            placeholder={metric.decimals === 2 ? "0.00" : "0"}
+                            title={`Paste ${metric.label} data for ${year}`}
+                          />
+                        </td>
+                      )
+                    ))}
+                  </tr>
+                )
+              })}
 
               {/* Revenue Increase % Row */}
               <tr className="calculated-row">
@@ -918,10 +1172,10 @@ const FinancialPage: React.FC = () => {
               {/* Earnings Increase % Row */}
               <tr className="calculated-row">
                 <td className="metric-label calculated-label">
-                  Earnings Increase (%)
+                  Profit After Tax for Shareholders Increase (%)
                 </td>
                 {years.map(year => {
-                  const earningsIncrease = calculatePercentageIncrease(year, 'earnings');
+                  const earningsIncrease = calculatePercentageIncrease(year, 'profit_after_tax_for_shareholders');
                   const isNegative = earningsIncrease.includes('-');
                   return (
                     <td key={`${year}-earnings-increase`} className="calculated-cell">

@@ -806,7 +806,7 @@ code {
 }
 
 .metric-label {
-  font-weight: 600;
+  /* font-weight: 600; */
   background-color: #f6f8fa;
   min-width: 200px;
   border-right: 1px solid #d0d7de;
@@ -866,8 +866,8 @@ code {
 
 .calculated-label {
   background-color: #e9ecef !important;
-  font-weight: 600;
-  color: #495057;
+  /* font-weight: 600; */
+  /* color: #4e5153; */
   /* font-style: italic; */
   font-size: 0.8rem;
 }
