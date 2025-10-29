@@ -1,5 +1,74 @@
 /* Financial Page Styles */
 
+/* Investment Summary Section */
+.investment-summary-form {
+  display: flex;
+  flex-direction: column;
+  /* gap: 1px; */
+  padding: 15px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 3fr 3fr;
+  /* gap: 3px; */
+  align-items: center;
+  /* padding: 3px 3px; */
+  /* border-bottom: 1px solid #e1e4e8; */
+}
+
+.form-row:last-child {
+  border-bottom: none;
+}
+
+.form-label {
+  font-weight: 500;
+  color: #24292f;
+  font-size: 0.85rem;
+}
+
+.form-input {
+  padding: 6px 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #0969da;
+  box-shadow: 0 0 0 2px rgba(9, 105, 218, 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 60px;
+  line-height: 1.4;
+}
+
+.calculated-value-large {
+  padding: 6px 12px;
+  background-color: #f6f8fa;
+  border-radius: 4px;
+  font-weight: 500;
+  color: #0969da;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.form-row.calculated-row {
+  background-color: #f8f9fa;
+}
+
+.form-row.calculated-row .form-label {
+  color: #0969da;
+}
+
 /* AI Queries Section Specific Styles */
 .ai-queries-section {
   margin-top: 40px;

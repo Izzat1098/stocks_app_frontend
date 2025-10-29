@@ -13,8 +13,10 @@ import {
 } from 'chart.js';
 import { stockService, StockData } from '../services/stockService';
 import financialService, { FinancialData, FinancialDataAll, FinancialDataCalculated, FinancialDataWithMeta, FinancialMetric, YearlyFinancials, YearlyFinancialsCalculated } from '../services/financialService';
+import investmentService, { InvestmentSummary, InvestmentSummaryField, investmentSummaryFields } from '../services/investmentService';
 import promptService, { PromptResponse } from '../services/promptService';
 import './FinancialPage.css';
+import { format } from 'path';
 
 // Register Chart.js components
 ChartJS.register(
@@ -49,6 +51,18 @@ const FinancialPage: React.FC = () => {
   const [aiResponses, setAiResponses] = useState<PromptResponse>({});
   const [loadingPrompts, setLoadingPrompts] = useState(false);
   const [generatingResponse, setGeneratingResponse] = useState<string | null>(null);
+  
+  // Investment Summary state
+  const [investmentSummary, setInvestmentSummary] = useState<InvestmentSummary>({});
+  const [originalInvestmentSummary, setOriginalInvestmentSummary] = useState<InvestmentSummary>({});
+  const [hasUnsavedSummaryChanges, setHasUnsavedSummaryChanges] = useState(false);
+  const [investInputValues, setInvestInputValues] = useState<{[key: string]: string}>({});
+
+  // Collapsible sections state
+  const [showCharts, setShowCharts] = useState(true);
+  const [showInvestmentSummary, setShowInvestmentSummary] = useState(true);
+  const [showFinancialData, setShowFinancialData] = useState(true);
+  const [showAiQueries, setShowAiQueries] = useState(true);
 
   const DEFAULT_UNIT = '$';
   const DEFAULT_DECIMALS = 0;
@@ -59,6 +73,7 @@ const FinancialPage: React.FC = () => {
     share_price_at_report_date: { decimals: 2 },
     max_share_price: { decimals: 2 },
     min_share_price: { decimals: 2 },
+    average_share_price: { decimals: 2 },
     number_of_shares: {unit: '' , hoverText: 'Calculated as: Profit After Tax For Shareholders / Earnings per Share' },
     // Price/Earnings Ratios
     price_earnings_ratio_report_date: { unit: ''},
@@ -77,6 +92,7 @@ const FinancialPage: React.FC = () => {
     net_tangible_assets: { hoverText: 'Calculated as: Total Assets - Intangible Assets - Total Liabilities - Non Controlling Interests' },
     // others
     dividend_per_share: { decimals: 2 },
+    dividend_yield: { unit: '%', decimals: 1, hoverText: 'Calculated as: Dividend per Share / Average Share Price' },
     dividend_payout_ratio: { unit: '', decimals: 1, hoverText: 'Calculated as: Dividend per Share / Earnings per Share' },
     debt_to_equity_ratio: { unit: '', decimals: 1, hoverText: 'Calculated as: Total Liabilities / Total Equity'  },
     free_cash_flow: { hoverText: 'Calculated as: Net Cash from Operating Activities - Investments in PPE' },
@@ -98,6 +114,7 @@ const FinancialPage: React.FC = () => {
     'share_price_at_report_date',
     'max_share_price',
     'min_share_price',
+    'average_share_price',
     'number_of_shares',
     'price_earnings_ratio_report_date',
     'price_earnings_ratio_max',
@@ -115,6 +132,7 @@ const FinancialPage: React.FC = () => {
     'dividend_per_share',
     'dividend_amount',
     'dividend_payout_ratio',
+    'dividend_yield',
     'separator-Current_Assets',
     'cash',
     'inventories',
@@ -186,13 +204,27 @@ const FinancialPage: React.FC = () => {
 
   const metrics = getMetrics();
 
-
-  // const metrics: FinancialMetric[] = [
-  //   { key: 'sharePrice', label: 'Share Price', unit: '$', decimals: 2 },
-  //   { key: 'revenue', label: 'Revenue', unit: '$', decimals: 0 },
-  //   { key: 'earnings', label: 'Earnings', unit: '$', decimals: 0 },
-  //   { key: 'earningsPerShare', label: 'Earnings Per Share', unit: '$', decimals: 2 },
-  // ];
+  const fieldsForIncreasesCalc: (keyof YearlyFinancials | keyof YearlyFinancialsCalculated | any)[] = [
+    'average_share_price',
+    'number_of_shares',
+    'revenue',
+    'profit_after_tax_for_shareholders',
+    'earnings_per_share',
+    'dividend_per_share',
+    'cash',
+    'total_current_assets',
+    'total_non_current_assets',
+    'total_assets',
+    'borrowings',
+    'total_current_liabilities',
+    'total_non_current_liabilities',
+    'total_liabilities',
+    'net_tangible_assets',
+    'equity_attributable_to_shareholders',
+    'total_equity',
+    'net_cash_from_operating_activities',
+    'free_cash_flow',
+  ];
 
   // Format number with commas and decimals
   const formatNumber = (value: number, decimals: number = 0): string => {
@@ -345,8 +377,40 @@ const FinancialPage: React.FC = () => {
       }
     };
 
+    const fetchInvestmentSummary = async () => {
+      if (!selectedStockId) return;
+      console.log('fetchInvestmentSummary called');
+      try {
+        const summary = await investmentService.getInvestmentSummary(selectedStockId, controller.signal);
+        console.log('Fetched investment summary:', summary);
+        if (isMounted && summary) {
+          setInvestmentSummary(summary);
+          setOriginalInvestmentSummary(JSON.parse(JSON.stringify(summary)));
+          setHasUnsavedSummaryChanges(false);
+
+        } else if (isMounted) {
+          // No summary found, initialize empty
+          setInvestmentSummary({});
+          setOriginalInvestmentSummary({});
+          setHasUnsavedSummaryChanges(false);
+        }
+
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          console.log('Fetch investment summary aborted');
+          return;
+        }
+        console.error('Error fetching investment summary:', error);
+        if (isMounted) {
+          setInvestmentSummary({});
+          setOriginalInvestmentSummary({});
+        }
+      }
+    };
+
     fetchFinancialData();
     fetchAiPrompts();
+    fetchInvestmentSummary();
 
     return () => {
       isMounted = false;
@@ -360,6 +424,20 @@ const FinancialPage: React.FC = () => {
     setHasUnsavedChanges(hasChanges);
   }, [financialData, originalFinancialData]);
 
+  // Detect changes in investment summary
+  useEffect(() => {
+    const hasChanges = JSON.stringify(investmentSummary) !== JSON.stringify(originalInvestmentSummary);
+    setHasUnsavedSummaryChanges(hasChanges);
+  }, [investmentSummary, originalInvestmentSummary]);
+
+  // format investment summary action
+  useEffect(() => {
+    investmentSummaryFields.map((field, index) => {
+      if (field.type === 'select') {
+        updateSelectStyle(field.key, index, `select-${field.key}`);
+      }
+    }); 
+  }, [investmentSummary]);
 
   // Recalculate when financialData changes (user edits)
   useEffect(() => {
@@ -387,6 +465,7 @@ const FinancialPage: React.FC = () => {
     setFinancialData({});
     setYears([]);
     setInputValues({});
+    setInvestmentSummary({});
 
     if (stockId === selectedStockId) {
       // If selecting the same stock, force a refresh
@@ -404,7 +483,7 @@ const FinancialPage: React.FC = () => {
     event.preventDefault();
     
     const pasteData = event.clipboardData.getData('text');
-    console.log('Pasted data:', pasteData);
+    // console.log('Pasted data:', pasteData);
     const lines = pasteData.trim().split('\n');
 
     // const metric = metrics.find(m => m.key === metricKey);
@@ -469,6 +548,19 @@ const FinancialPage: React.FC = () => {
     setFinancialData(updatedData);
   };
 
+  // Handle paste event for investment summary
+  const handlePasteInvestmentSummary = async (event: React.ClipboardEvent, key: keyof InvestmentSummary) => {
+    event.preventDefault();
+    
+    const pasteData = event.clipboardData.getData('text');
+    const lines = pasteData.trim().split('\n');
+
+    // Single value paste
+    const value = parseFormattedNumber(lines[0].trim());
+
+    updateInvestmentSummary(key, value)
+  };
+
   // Save financial data
   const handleSave = async () => {
     if (!selectedStock || !selectedStockId) {
@@ -493,6 +585,58 @@ const FinancialPage: React.FC = () => {
       alert('Failed to save financial data. Please try again.');
     }
   };
+
+  // Save investment summary
+  const handleSaveInvestmentSummary = async () => {
+    if (!selectedStockId) {
+      // alert('Please select a stock first');
+      return;
+    }
+
+    try {
+      await investmentService.saveInvestmentSummary(selectedStockId, investmentSummary);
+      
+      // Update original data to reflect saved state
+      setOriginalInvestmentSummary(JSON.parse(JSON.stringify(investmentSummary)));
+      setHasUnsavedSummaryChanges(false);
+      
+    } catch (error) {
+      console.error('Failed to save investment summary:', error);
+      alert('Failed to save investment summary. Please try again.');
+    }
+  };
+
+  // Update investment summary field
+  const updateInvestmentSummary = (field: keyof InvestmentSummary, value: any) => {
+    setInvestmentSummary(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Update select style
+  const updateSelectStyle = (fieldKey: keyof InvestmentSummary, fieldIndex: number, id: string, reset?: boolean) => {
+    const selectElement = document.getElementById(id) as HTMLSelectElement | null;
+    if (!selectElement) return;
+
+    const field = investmentSummaryFields[fieldIndex];
+    if (!field) return;
+
+    if (reset) {
+      selectElement.style.backgroundColor = '';
+      selectElement.style.color = '';
+      selectElement.style.fontWeight = '';
+      return;
+    }
+    const value = investmentSummary[fieldKey] ?? '';
+    const styles = field.optionStyles?.[value];
+
+    if (styles){
+      selectElement.style.backgroundColor = styles.backgroundColor ?? '';
+      selectElement.style.color = styles.color ?? '';
+      selectElement.style.fontWeight = 'bold';
+    }
+  }
 
   const handleGenerateAIResponse = async (promptId: string) => {
     if (!selectedStockId) return;
@@ -730,15 +874,15 @@ const FinancialPage: React.FC = () => {
 
 
   // Calculate percentage increase (with CAGR for first year)
-  const calculatePercentageIncrease = (currentYear: string, metricKey: keyof YearlyFinancials): string => {
+  const calculatePercentageIncrease = (currentYear: string, metricKey: keyof YearlyFinancials | keyof YearlyFinancialsCalculated): string => {
     const currentYearIndex = years.indexOf(currentYear);
     if (currentYearIndex < 0) return '-'; // No previous year to compare
 
-    const currentValue = financialData[currentYear]?.[metricKey];
+    const currentValue = financialDataAll[currentYear]?.[metricKey];
 
     if (currentYearIndex === 0) { // for CAGR calculation at the first year
       const nYears = years.length;
-      const latestValue = financialData[years[nYears - 1]]?.[metricKey];
+      const latestValue = financialDataAll[years[nYears - 1]]?.[metricKey];
       if (latestValue && currentValue && latestValue > 0 && currentValue > 0 && nYears > 1) {
         const CAGR = (Math.pow((latestValue / currentValue), (1 / (nYears - 1))) - 1) * 100;
         if (CAGR > 0) {
@@ -750,7 +894,7 @@ const FinancialPage: React.FC = () => {
     }
     
     const previousYear = years[currentYearIndex - 1];
-    const previousValue = financialData[previousYear]?.[metricKey];
+    const previousValue = financialDataAll[previousYear]?.[metricKey];
     if (!currentValue || !previousValue || previousValue === 0) return '-';
 
     const revenueIncrease = ((currentValue - previousValue) / previousValue) * 100;
@@ -961,10 +1105,198 @@ const FinancialPage: React.FC = () => {
       {/* Charts Section */}
       {selectedStock && (
         <div className="card">
-          <h2>Financial Data Chart - {selectedStock.ticker} | {selectedStock.company_name}</h2>
-          <div className="chart-container">
-            <Line data={combinedChartData} options={chartOptions} />
+          <h2 
+            onClick={() => setShowCharts(!showCharts)}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+          >
+            <span>{showCharts ? '▼' : '▶'}</span>
+            Financial Data Chart - {selectedStock.ticker} | {selectedStock.company_name}
+          </h2>
+          {showCharts && (
+            <div className="chart-container">
+              <Line data={combinedChartData} options={chartOptions} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Investment Summary Section */}
+      {selectedStock && (
+        <div className="card">
+          <div className="card-header">
+            <h2 
+              onClick={() => setShowInvestmentSummary(!showInvestmentSummary)}
+              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+            >
+              <span>{showInvestmentSummary ? '▼' : '▶'}</span>
+              Investment Summary - {selectedStock.ticker} | {selectedStock.company_name}
+            </h2>
+            <div className="year-controls">
+              <button 
+                onClick={handleSaveInvestmentSummary}
+                className="btn btn-save"
+                disabled={!hasUnsavedSummaryChanges}
+                title={hasUnsavedSummaryChanges ? "Save investment summary to database" : "No changes to save"}
+              >
+                {hasUnsavedSummaryChanges ? '💾 Save Summary' : '✓ Summary Saved'}
+              </button>
+            </div>
           </div>
+
+          {showInvestmentSummary && (
+            <div className="investment-summary-form">
+            {investmentSummaryFields.map((field, index) => {
+
+              if (field.type === 'calculated') {
+                const calculatedValues = field.calculate 
+                  ? field.calculate(investmentSummary, financialDataAll)
+                  : null;
+
+                let nDisplayValues = calculatedValues?.length;
+                if ((nDisplayValues ?? 0) > 2) {
+                  console.error('Calculated field returns more than 2 values, which is not supported:', field);
+                }
+                let displayValues = [];
+
+                for (const val of (calculatedValues || [])) {
+                  const displayValue = field.format 
+                    ? field.format(val)
+                    : val?.toString() || '-';
+                  displayValues.push(displayValue);
+                }
+
+                const columnCount = displayValues.length + 1;
+                const gridTemplate = columnCount === 2 
+                  ? '3fr 3fr'
+                  : '4fr 2fr 2fr'
+
+                const secondaryLabel = displayValues?.[1] !== '-' 
+                  ? field?.secondary_label || ''
+                  : '';
+
+                return (
+                  <div key={`${field.key}-${index}`} 
+                    className="form-row calculated-row" 
+                    style={{ gridTemplateColumns: gridTemplate }}>
+                    <label className="form-label">{field.label}</label>
+                    <div key={`${field.key}-${index}-1`} className="calculated-value-large">{displayValues[0]}</div>
+                    { (nDisplayValues ?? 0) > 1 && (
+                      <div key={`${field.key}-${index}-2`} className="calculated-value-large">{`${displayValues[1]} ${secondaryLabel}`}</div>
+                    )}
+                    
+                  </div>
+                );
+
+              } else if (field.type === 'input') {
+                return (
+                  <div key={field.key} className="form-row">
+                    <label className="form-label">{field.label}</label>
+                    <input
+                      type={field.inputType}
+                      step={field.step}
+                      value={(() => {
+                        if (investInputValues[field.key] !== undefined) {
+                          return investInputValues[field.key];
+                        }
+                        return investmentSummary?.[field.key]
+                          ? formatNumber(investmentSummary[field.key] as number, field.decimals || 0)
+                          : '';
+                        }
+                      )()}
+                      onChange={(e) => {
+                        console.log('Investmentsummary: ', investmentSummary);
+                        setInvestInputValues(prev => ({
+                          ...prev,
+                          [field.key]: e.target.value
+                        }));
+                      }}
+                      onBlur={(e) => {
+                        const rawValue = investInputValues[field.key];
+                        if (rawValue !== undefined) {
+                          const numericValue = parseFormattedNumber(rawValue);
+                          updateInvestmentSummary(field.key, numericValue);
+
+                          setInvestInputValues(prev => {
+                            const updated = { ...prev };
+                            delete updated[field.key];
+                            return updated;
+                          });
+                        }
+                      }}
+                      onPaste={(e) =>
+                        handlePasteInvestmentSummary(e, field.key)}
+                      className="form-input"
+                      placeholder={field.placeholder}
+                    />
+                  </div>
+                );
+
+              } else if (field.type === 'date') {
+                return (
+                    <div key={field.key} className="form-row">
+                    <label className="form-label">{field.label}</label>
+                    <input
+                      type={field.inputType}
+                      value={(() => {
+                      const inputValue = investmentSummary[field.key] as string;
+                      return inputValue
+                        ? inputValue
+                        : '';
+                      })()}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        updateInvestmentSummary(field.key, value);
+                      }}
+                      className="form-input"
+                      placeholder={new Date().toISOString().split('T')[0]}
+                    />
+                    </div>
+                );
+
+              } else if (field.type === 'select' && field.options) {
+                return (
+                  <div key={field.key} className="form-row">
+                    <label className="form-label">{field.label}</label>
+                    <select
+                      value={investmentSummary[field.key] || ''}
+                      id={`select-${field.key}`}
+                      onChange={(e) => {
+                        updateSelectStyle(field.key, index, `select-${field.key}`);
+                        updateInvestmentSummary(field.key, e.target.value);
+                      }}
+                      onFocus={(e) => {updateSelectStyle(field.key, index, `select-${field.key}`, true)}}
+                      onBlur={(e) => {updateSelectStyle(field.key, index, `select-${field.key}`)}}
+                      className="form-input"
+                    >
+                      {field.options.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+
+              } else if (field.type === 'textarea') {
+                return (
+                  <div key={field.key} className="form-row">
+                    <label className="form-label">{field.label}</label>
+                    <textarea
+                      value={investmentSummary[field.key] || ''}
+                      onChange={(e) => 
+                        updateInvestmentSummary(field.key, e.target.value)}
+                      className="form-input form-textarea"
+                      placeholder={field.placeholder}
+                      rows={field.rows}
+                    />
+                  </div>
+                );
+              }
+
+              return null;
+            })}
+          </div>
+          )}
         </div>
       )}
 
@@ -972,7 +1304,13 @@ const FinancialPage: React.FC = () => {
       {selectedStock && (
         <div className="card">
           <div className="card-header">
-            <h2>Financial Data Input - {selectedStock.ticker} | {selectedStock.company_name}</h2>
+            <h2 
+              onClick={() => setShowFinancialData(!showFinancialData)}
+              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+            >
+              <span>{showFinancialData ? '▼' : '▶'}</span>
+              Financial Data Input - {selectedStock.ticker} | {selectedStock.company_name}
+            </h2>
             <div className="year-controls">
               {errorForm && (
                 <div className="error-left">{errorForm}</div>
@@ -1000,6 +1338,8 @@ const FinancialPage: React.FC = () => {
             </div>
           </div>
 
+          {showFinancialData && (
+            <>
           <div className="paste-instructions">
             <div className="paste-instructions-header" onClick={() => setShowPasteInstructions(!showPasteInstructions)}>
               <h4>💡 Paste Instructions</h4>
@@ -1122,6 +1462,9 @@ const FinancialPage: React.FC = () => {
                                 ? formatNumber(financialData[year]![metricKey]!, metric.decimals || 0)
                                 : '';
                             })()}
+
+
+
                             onChange={(e) => {
                               const metricKey = metric.key as keyof YearlyFinancials;
                               handleInputChange(year, metricKey, e.target.value)}}
@@ -1148,51 +1491,40 @@ const FinancialPage: React.FC = () => {
                 )
               })}
 
-              {/* Revenue Increase % Row */}
-              <tr className="calculated-row">
-                <td className="metric-label calculated-label">
-                  Revenue Increase (%)
-                </td>
-                {years.map(year => {
-                  const revenueIncrease = calculatePercentageIncrease(year, 'revenue');
-                  const isNegative = revenueIncrease.includes('-');
-                  return (
-                    <td key={`${year}-revenue-increase`} className="calculated-cell">
-                      <div className={`calculated-value ${isNegative ? 'negative-value' : 'positive-value'}`}>
-                        {revenueIncrease !== null 
-                          ? `${revenueIncrease}`
-                          : '-'
-                        }
-                      </div>
-                    </td>
-                  );
-                })}
-              </tr>
+              {fieldsForIncreasesCalc.map(fieldKey => {
+                const metric = metrics.find(m => m.key === fieldKey);
+                if (!metric) return null;
 
-              {/* Earnings Increase % Row */}
-              <tr className="calculated-row">
-                <td className="metric-label calculated-label">
-                  Profit After Tax for Shareholders Increase (%)
-                </td>
-                {years.map(year => {
-                  const earningsIncrease = calculatePercentageIncrease(year, 'profit_after_tax_for_shareholders');
-                  const isNegative = earningsIncrease.includes('-');
-                  return (
-                    <td key={`${year}-earnings-increase`} className="calculated-cell">
-                      <div className={`calculated-value ${isNegative ? 'negative-value' : 'positive-value'}`}>
-                        {earningsIncrease !== null 
-                          ? `${earningsIncrease}`
-                          : '-'
-                        }
-                      </div>
+                return (
+                  <tr className="calculated-row">
+                    <td className="metric-label calculated-label"
+                      title={`CAGR and YOY Increases in ${metric.label}`}
+                      >
+                      {metric.label}
                     </td>
-                  );
-                })}
-              </tr>
+                    {years.map(year => {
+                      const increases = calculatePercentageIncrease(year, fieldKey);
+                      const isNegative = increases.includes('-');
+                      return (
+                        <td key={`${year}-${fieldKey}-increase`} className="calculated-cell">
+                          <div className={`calculated-value ${isNegative ? 'negative-value' : 'positive-value'}`}>
+                            {increases !== null 
+                              ? `${increases}`
+                              : '-'
+                            }
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                )
+              })}
 
             </tbody>
           </table>
         </div>
+            </>
+          )}
       </div>
       )}
 
@@ -1200,10 +1532,15 @@ const FinancialPage: React.FC = () => {
       <div className="card">
         <div>
           <div className="ai-queries-header">
-            <h3 className="ai-queries-title">
+            <h3 
+              className="ai-queries-title"
+              onClick={() => setShowAiQueries(!showAiQueries)}
+              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
+            >
+              <span>{showAiQueries ? '▼' : '▶'}</span>
               AI Queries
             </h3>
-            {!loadingPrompts && Object.keys(aiPrompts).length > 0 && (
+            {showAiQueries && !loadingPrompts && Object.keys(aiPrompts).length > 0 && (
               <button
                 className="btn btn-primary btn-outline"
                 onClick={handleGenerateAllResponses}
@@ -1214,6 +1551,8 @@ const FinancialPage: React.FC = () => {
             )}
           </div>
           
+          {showAiQueries && (
+          <>
           {loadingPrompts ? (
             <div className="ai-loading-message">
               Loading AI prompts...
@@ -1263,6 +1602,8 @@ const FinancialPage: React.FC = () => {
                 )}
               </tbody>
             </table>
+          )}
+          </>
           )}
         </div>
       </div>

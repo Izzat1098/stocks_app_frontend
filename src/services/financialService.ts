@@ -53,11 +53,13 @@ export interface YearlyFinancials {
 export interface YearlyFinancialsCalculated {
   // per share things
   number_of_shares?: number;
+  average_share_price?: number;
   price_earnings_ratio_report_date?: number;
   price_earnings_ratio_max?: number;
   price_earnings_ratio_min?: number;
   dividend_amount?: number;
   dividend_payout_ratio?: number;
+  dividend_yield?: number;
   // profit loss
   gross_margin?: number;
   profit_before_tax_margin?: number;
@@ -166,6 +168,8 @@ export const financialService = {
         ? (yearData.profit_after_tax_for_shareholders ?? 0) / (yearData.earnings_per_share ?? 0)
         : 0;
 
+      const averageSharePrice = ((yearData.max_share_price ?? 0) + (yearData.min_share_price ?? 0)) / 2;
+
       const totalCurrentAssets = (yearData.cash ?? 0) +
         (yearData.inventories ?? 0) +
         (yearData.receivables ?? 0) +
@@ -206,6 +210,8 @@ export const financialService = {
         // per share things
         number_of_shares: numberOfShares,
 
+        average_share_price: averageSharePrice,
+
         price_earnings_ratio_report_date: (yearData.earnings_per_share ?? 0) !== 0
           ? (yearData.share_price_at_report_date ?? 0) / (yearData.earnings_per_share ?? 0)
           : 0,
@@ -219,6 +225,10 @@ export const financialService = {
           : 0,
 
         dividend_amount: (yearData.dividend_per_share ?? 0) * (numberOfShares ?? 0),
+
+        dividend_yield: (averageSharePrice ?? 0) !== 0
+          ? 100 * (yearData.dividend_per_share ?? 0) / (averageSharePrice ?? 0)
+          : 0,
 
         dividend_payout_ratio: (yearData.earnings_per_share ?? 0) !== 0
           ? (yearData.dividend_per_share ?? 0) / (yearData.earnings_per_share ?? 0)
@@ -294,9 +304,6 @@ export const financialService = {
     const response = await api.post(`/stocks/${stockId}/financials`, financialData);
     return response.data;
   },
-
-
-
 };
 
 export default financialService;
