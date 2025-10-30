@@ -113,32 +113,6 @@ export interface FinancialMetric {
   hoverText?: string;
 }
 
-// export const mapSnakeToCamel = {
-//   share_price: 'sharePrice',
-//   earnings_per_share: 'earningsPerShare',
-//   // revenue: 'revenue',
-//   // earnings: 'earnings'
-// };
-
-// export const mapCamelToSnake = {
-//   sharePrice: 'share_price',
-//   earningsPerShare: 'earnings_per_share',
-//   // revenue: 'revenue',
-//   // earnings: 'earnings'
-// };
-
-// const transformCase = (obj: any, mappedObj: any): any => {
-//   // Transform the keys from one case to another
-//   const transformed: any = {};
-
-//   for (const key in obj) {
-//       const newKey = mappedObj[key] || key;
-//       transformed[newKey] = obj[key];
-//   }
-
-//   return transformed;
-// };
-
 
 export const financialService = {
 
@@ -150,10 +124,6 @@ export const financialService = {
       data: response.data.data 
     };
 
-    // for (const [year, metrics] of Object.entries(response.data.data)) {
-    //   financialData.data[year] = transformCase(metrics, mapSnakeToCamel);
-    // };
-    // console.log('Fetched financial data:', financialData);
     return financialData;
   },
 
@@ -296,10 +266,6 @@ export const financialService = {
 
   saveFinancialData: async (stockId: number, data: FinancialDataWithMeta): Promise<any> => {
     const financialData: FinancialDataWithMeta = { stock_id: data.stock_id, data: data.data };
-
-    // for (const [year, metrics] of Object.entries(data.data)) {
-    //   financialData.data[year] = transformCase(metrics, mapCamelToSnake);
-    // };
 
     const response = await api.post(`/stocks/${stockId}/financials`, financialData);
     return response.data;

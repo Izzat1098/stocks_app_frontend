@@ -237,7 +237,7 @@ const FinancialPage: React.FC = () => {
   // Parse formatted number back to number
   const parseFormattedNumber = (value: string): number => {
     // Remove currency codes, symbols, and unwanted characters
-    let cleaned = value
+    const cleaned = value
       .replace(/[A-Z]{2,3}/gi, '')  // Remove currency codes (USD, RM, EUR, etc.)
       .replace(/[$€£¥₹]/g, '')      // Remove common currency symbols
       .replace(/[^\d.kmb,-]/gi, '')  // Keep only digits, dots, k/m/b, commas, minus
@@ -513,7 +513,7 @@ const FinancialPage: React.FC = () => {
           const metricKey = metric.key as keyof YearlyFinancials;
           updatedData[year][metricKey] = value;
         }
-      };
+      }
       
       setFinancialData(updatedData);
 
@@ -1152,7 +1152,7 @@ const FinancialPage: React.FC = () => {
                   ? field.calculate(investmentSummary, financialDataAll)
                   : null;
 
-                let nDisplayValues = calculatedValues?.length;
+                const nDisplayValues = calculatedValues?.length;
                 if ((nDisplayValues ?? 0) > 2) {
                   console.error('Calculated field returns more than 2 values, which is not supported:', field);
                 }

@@ -29,8 +29,6 @@ const LoginPage: React.FC = () => {
 
     try {
       const response = await authService.login(formData);
-      // console.log('Login response:', response);
-      // alert(`Login successful! Token: ${response}`);
 
       try {
         login(response.access_token, response.username, response.email);
@@ -41,8 +39,6 @@ const LoginPage: React.FC = () => {
       }
 
     } catch (err: any) {
-      // console.error('Login error:', err);
-      // alert('Login failed: ' + (err.response?.data?.detail || err.message || 'Unknown error'));
 
       setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
 

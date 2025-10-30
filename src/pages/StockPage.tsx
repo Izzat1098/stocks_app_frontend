@@ -131,7 +131,7 @@ const StockPage: React.FC = () => {
 					console.error(`Failed to fetch price for ${stock.ticker}:`, err);
 					updatedStocks.push(stock); // Keep original stock if price fetch failed
 				}
-			};
+			}
 			// Update the stocks state - this will trigger UI re-render
 			setStocks(updatedStocks);
 
