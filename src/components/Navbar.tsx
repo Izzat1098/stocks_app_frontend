@@ -23,7 +23,7 @@ const Navbar: React.FC = () => {
     <nav className="navbar">
       <div className="navbar-content">
         <Link to="/" className="navbar-brand" onClick={closeMenu}>
-          Stock Investment Tracker
+          ValuIntel
         </Link>
         
         {/* Hamburger button */}
