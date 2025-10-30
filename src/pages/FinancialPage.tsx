@@ -227,7 +227,7 @@ const FinancialPage: React.FC = () => {
   ];
 
   // Format number with commas and decimals
-  const formatNumber = (value: number, decimals: number = 0): string => {
+  const formatNumber = (value: number, decimals = 0): string => {
     return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
@@ -1156,7 +1156,7 @@ const FinancialPage: React.FC = () => {
                 if ((nDisplayValues ?? 0) > 2) {
                   console.error('Calculated field returns more than 2 values, which is not supported:', field);
                 }
-                let displayValues = [];
+                const displayValues = [];
 
                 for (const val of (calculatedValues || [])) {
                   const displayValue = field.format 
@@ -1496,7 +1496,7 @@ const FinancialPage: React.FC = () => {
                 if (!metric) return null;
 
                 return (
-                  <tr className="calculated-row">
+                  <tr key={`row-${fieldKey}`} className="calculated-row">
                     <td className="metric-label calculated-label"
                       title={`CAGR and YOY Increases in ${metric.label}`}
                       >

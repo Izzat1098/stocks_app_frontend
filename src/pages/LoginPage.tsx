@@ -95,7 +95,7 @@ const LoginPage: React.FC = () => {
 
         <div style={{ textAlign: 'center', marginTop: '1rem' }}>
           <p>
-            Don't have an account?{' '}
+            {"Don't have an account? "}
             <Link to="/register" style={{ color: '#007bff' }}>
               Register here
             </Link>

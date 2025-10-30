@@ -44,7 +44,7 @@ const HomePage: React.FC = () => {
           </div>
           <div>
             <h3>📊 Gain/Loss Analysis</h3>
-            <p>See your portfolio's gains and losses at a glance</p>
+            <p>{"See your portfolio's gains and losses at a glance"}</p>
           </div>
         </div>
       </div>
