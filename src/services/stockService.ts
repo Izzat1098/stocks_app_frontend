@@ -12,7 +12,8 @@ export interface StockData {
   sector: string;
   country: string;
   ai_description: string;
-  stockPrice?: StockPrice;
+  stockPrice?: number | null;
+  stockPriceFetchedDateTime?: string;
 }
 
 export interface StockFormData {

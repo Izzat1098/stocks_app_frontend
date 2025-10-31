@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { StockPrice } from '../types';
 import { StockData } from './stockService';
+import { Exchange } from './exchangeService';
 
 const US_PRICE_URL = 'https://production.dataviz.cnn.io/charting/instruments/latest/report_range/market_status/TICKER/1D/REGULAR';
 const MY_PRICE_URL = 'https://stockanalysis.com/api/quotes/a/KLSE-ABBREVIATION'
@@ -13,9 +14,6 @@ const US_PRICE_URL2 = 'https://stockanalysis.com/api/quotes/s/TICKER'
 const createApiInstance = (baseURL: string) => {
   const api = axios.create({
     baseURL: baseURL,
-    // headers: {
-    //   'Content-Type': 'application/json',
-    // },
   });
 
   // Handle errors
@@ -41,65 +39,73 @@ const createApiInstance = (baseURL: string) => {
 };
 
 
-const usStockPrice = async (stockPrice: StockPrice): Promise<StockPrice> => {
-    const base_url = US_PRICE_URL.replace('TICKER', stockPrice.ticker);
+const usStockPrice = async (stockData: StockData): Promise<number | null> => {
+    const ticker = stockData.ticker;
+    const base_url = US_PRICE_URL.replace('TICKER', ticker);
     const api = createApiInstance(base_url);
-    const response = await api.get('');
 
-    const data = response.data;
-    if (data && data.symbol?.toLowerCase() === stockPrice.ticker.toLowerCase()) {
-      // below are specific to the API response structure. change if the API changes
-      stockPrice.currentPrice = response.data.current_price || null;
-      stockPrice.fetchedDateTime = new Date().toISOString();
+    try {
+      const response = await api.get('');
+      const data = response.data;
+      if (data && data.symbol?.toLowerCase() === ticker.toLowerCase()) {
+        return data.current_price ?? null;
+      } else return null;
+
+    } catch (error) {
+      console.error(`Error fetching US stock for ${ticker}:`, error);
+      return null;
     }
-    // console.log(`US stock price fetched for ticker ${stockPrice.ticker}: `, stockPrice);
-    return stockPrice;
 };
 
 
-const myStockPrice = async (stockPrice: StockPrice): Promise<StockPrice> => {
-    const base_url = MY_PRICE_URL.replace('ABBREVIATION', stockPrice.abbreviation.toUpperCase());
+const myStockPrice = async (stockData: StockData): Promise<number | null> => {
+    // const ticker = stockData.ticker;
+    const abbreviation = stockData.abbreviation;
+    const klseAbbreviation = `KLSE-${abbreviation}`;
+
+    const base_url = MY_PRICE_URL.replace('ABBREVIATION', abbreviation.toUpperCase());
     const api = createApiInstance(base_url);
-    const response = await api.get('');
-    const klseAbbreviation = `KLSE-${stockPrice.abbreviation}`;
 
-    const data = response.data.data;
+    try {
+      const response = await api.get('');
+      const data = response.data.data;
+      if (data && data.symbol?.toLowerCase() === klseAbbreviation.toLowerCase()) {
+        return data.p ?? null;
+      } else return null;
 
-    if (data && data.symbol?.toLowerCase() === klseAbbreviation.toLowerCase()) {
-      // below are specific to the API response structure. change if the API changes
-      stockPrice.currentPrice = data.p || null;
-      stockPrice.fetchedDateTime = new Date().toISOString();
+    } catch (error) {
+      console.error(`Error fetching MY stock for ${abbreviation}:`, error);
+      return null;
     }
-    // console.log(`MY stock price fetched for abbreviation ${stockPrice.abbreviation}: `, stockPrice);
-    return stockPrice;
 };
 
 
 
 export const stockPriceService = {
-  fetchStockPrice: async (stockData: StockData): Promise<StockData> => {
-    if (!stockData.stockPrice || !stockData.stockPrice.fetchedDateTime) {
-      // Handle missing stockPrice or fetchedDateTime
-      stockData.stockPrice = {
-        ticker: stockData.ticker,
-        abbreviation: stockData.abbreviation,
-        currentPrice: 0,
-        fetchedDateTime: new Date(0).toISOString(),
-      };
-    }
+  fetchStockPrice: async (stockData: StockData, exchanges: Exchange[]): Promise<number | null> => {
+    const country = stockData.country ? stockData.country.toLowerCase() : '';
+    const exchange_id = stockData.exchange_id ? stockData.exchange_id : 0;
+    const exchange_name = exchanges.find(ex => ex.id === exchange_id)?.name || '';
 
-    if (stockData.country.toLowerCase() === 'united states') {
-      stockData.stockPrice = await usStockPrice(stockData.stockPrice);
-      return stockData;
+    const isUSStock = country === 'united states' ||
+      ['nasdaq', 'new york', 'nyse'].some(name => exchange_name.toLowerCase().includes(name));
 
-    } else if (stockData.country.toLowerCase() === 'malaysia') {
-      stockData.stockPrice = await myStockPrice(stockData.stockPrice);
-      return stockData;
-      
+    const isMYStock = country === 'malaysia' ||
+      ['bursa', 'kuala lumpur'].some(name => exchange_name.toLowerCase().includes(name));
+
+    let sharePrice: number | null = null;
+
+    if (isUSStock) {
+      sharePrice = await usStockPrice(stockData);
+
+    } else if (isMYStock) {
+      sharePrice = await myStockPrice(stockData);
+
     } else {
-      console.warn(`No external price service for country: ${stockData.country}`);
-      return stockData;
+      console.warn(`No external price service for country: ${stockData.country} for stock: ${stockData.ticker}`);
+
     }
+    return sharePrice;
   },
 };
 

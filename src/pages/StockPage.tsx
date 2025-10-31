@@ -118,21 +118,13 @@ const StockPage: React.FC = () => {
 	const fetchAllStockPrices = async () => {
 		try {
 			setPricesLoading(true);
-			const updatedStocks: StockData[] = [];
+      const updatedStocks = await Promise.all(
+        stocks.map(async stock => {
+          const sharePrice = await stockPriceService.fetchStockPrice(stock, exchanges);
+          return { ...stock, stockPrice: sharePrice , stockPriceFetchedDateTime: new Date().toISOString() };
+        })
+      );
 
-			for (let i = 0; i < stocks.length; i++) {
-				const stock = stocks[i];
-				try {
-					// console.log(`Fetching price for ${stock.ticker} ...`);
-					const updatedStock: StockData = await stockPriceService.fetchStockPrice(stock);
-					updatedStocks.push(updatedStock);
-
-				} catch (err) {
-					console.error(`Failed to fetch price for ${stock.ticker}:`, err);
-					updatedStocks.push(stock); // Keep original stock if price fetch failed
-				}
-			}
-			// Update the stocks state - this will trigger UI re-render
 			setStocks(updatedStocks);
 
 		} catch (err) {
@@ -167,7 +159,7 @@ const StockPage: React.FC = () => {
 							clearInterval(interval);
 					};
 			}
-	}, [stocks.length]); // Only depend on stocks.length change, not the entire stocks array
+	}, [stocks.length, exchanges.length] ); // Only depend on stocks.length change, not the entire stocks array
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
 		const { name, value } = e.target;
@@ -385,10 +377,12 @@ const StockPage: React.FC = () => {
                       <span className="loading-price">Loading...</span>
                     ) : stock.stockPrice ? (
                       <span className="stock-price">
-                        ${stock.stockPrice.currentPrice.toFixed(2)}
+                        ${stock.stockPrice.toFixed(2)}
                       </span>
                     ) : (
-                      <span className="price-unavailable">N/A</span>
+                      <span 
+                        className="price-unavailable"
+                        title="Unable to fetch share price. Please recheck stock details and ensure it is correct">N/A</span>
                     )}
                   </td>
                   <td>
