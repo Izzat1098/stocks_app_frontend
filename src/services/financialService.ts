@@ -270,6 +270,45 @@ export const financialService = {
     const response = await api.post(`/stocks/${stockId}/financials`, financialData);
     return response.data;
   },
+
+  // Calculate percentage increase (with CAGR for first year)
+  calculatePercentageIncrease: (
+    currentYear: string,
+    years: string[],
+    metricKey: keyof YearlyFinancials | keyof YearlyFinancialsCalculated,
+    financialDataAll: FinancialDataAll
+  ): string | number | null => {
+    const currentYearIndex = years.indexOf(currentYear);
+    if (currentYearIndex < 0) return null; // No previous year to compare
+
+    const currentValue = financialDataAll[currentYear]?.[metricKey];
+
+    if (currentYearIndex === 0) { // for CAGR calculation at the first year
+      const nYears = years.length;
+      const latestValue = financialDataAll[years[nYears - 1]]?.[metricKey];
+      if (latestValue && currentValue && latestValue > 0 && currentValue > 0 && nYears > 1) {
+        const CAGR = (Math.pow((latestValue / currentValue), (1 / (nYears - 1))) - 1) * 100;
+        if (CAGR > 0) {
+          return `CAGR = +${CAGR.toFixed(1)}%`;
+        } else {
+          return `CAGR = ${CAGR.toFixed(1)}%`;
+        }
+      } else return null;
+    }
+    
+    const previousYear = years[currentYearIndex - 1];
+    const previousValue = financialDataAll[previousYear]?.[metricKey];
+    if (!currentValue || !previousValue || previousValue === 0) return null;
+
+    const revenueIncrease = ((currentValue - previousValue) / previousValue) * 100;
+    return revenueIncrease;
+    // if (revenueIncrease > 0) {
+    //   return `+${revenueIncrease.toFixed(1)}%`;
+    // } else {
+    //   return `${revenueIncrease.toFixed(1)}%`;
+    // }
+  },
+
 };
 
 export default financialService;

@@ -6,6 +6,7 @@ import exchangeService, { Exchange } from '../services/exchangeService';
 import referenceService from '../services/referenceService';
 import { Sectors, Countries, StockPrice } from '../types';
 import stockPriceService from '../services/externalService';
+import investmentService, { InvestmentSummary } from '../services/investmentService';
 
 // Use StockData from service instead of local interface
 type Stock = StockData;
@@ -53,6 +54,10 @@ const StockPage: React.FC = () => {
 	// References for dropdown
 	const [sectors, setSectors] = useState<Sectors[]>([]);
 	const [countries, setCountries] = useState<Countries[]>([]);
+
+  // investment summary
+  const [investmentSummary, setInvestmentSummary] = useState<InvestmentSummary>({});
+  const [investmentLoading, setInvestmentLoading] = useState(false);
 
 	const fetchStocks = async () => {
     try {
@@ -135,18 +140,41 @@ const StockPage: React.FC = () => {
 		}
 	};
 
+  const fetchInvestmentSummary = async () => {
+		try {
+			setInvestmentLoading(true);
+      const updatedStocks = await Promise.all(
+        stocks.map(async stock => {
+          if (stock.id === undefined) return { ...stock, investmentAction: null };
+          const summary = await investmentService.getInvestmentSummary(stock.id);
+          return { ...stock, investmentAction: summary?.invest || null };
+        })
+      );
+
+			setStocks(updatedStocks);
+
+		} catch (err) {
+			console.error('Failed to fetch stock investment summaries:', err);
+
+		} finally {
+			setInvestmentLoading(false);
+		}
+	};
+
 	// Load stocks and exchanges on component mount
 	useEffect(() => {
 		fetchStocks();
 		fetchExchanges();
 		fetchSectors();
 		fetchCountries();
+    // fetchInvestmentSummary();
 	}, []);
 
 	useEffect(() => {
 			// Only run if stocks are loaded
 			if (stocks.length > 0) {
 					fetchAllStockPrices();
+          fetchInvestmentSummary();
 					
 					// Set up interval to run every 5 minutes (300,000 ms)
 					const interval = setInterval(() => {
@@ -359,6 +387,7 @@ const StockPage: React.FC = () => {
                 <th>Abbreviation</th>
                 <th>Sector</th>
 								<th>Current Price</th>
+                <th>Invest?</th>
 								<th>Actions</th>
               </tr>
             </thead>
@@ -373,17 +402,26 @@ const StockPage: React.FC = () => {
                   <td>{stock.abbreviation}</td>
                   <td>{stock.sector}</td>
                   <td>
-                    {pricesLoading ? (
-                      <span className="loading-price">Loading...</span>
-                    ) : stock.stockPrice ? (
-                      <span className="stock-price">
-                        ${stock.stockPrice.toFixed(2)}
-                      </span>
-                    ) : (
-                      <span 
-                        className="price-unavailable"
-                        title="Unable to fetch share price. Please recheck stock details and ensure it is correct">N/A</span>
-                    )}
+                    {pricesLoading 
+                      ? (<span className="loading-price">Loading...</span>) 
+                      : stock.stockPrice 
+                      ? (<span className="stock-price">${stock.stockPrice.toFixed(2)}</span>) 
+                      : (<span 
+                          className="data-unavailable"
+                          title="Unable to fetch share price. Please recheck stock details and ensure it is correct">N/A
+                        </span>)
+                    }
+                  </td>
+                  <td>
+                    {investmentLoading 
+                      ? (<span className="loading-investment">Loading...</span>) 
+                      : stock.investmentAction 
+                      ? (<span className="investment-action">{stock.investmentAction.toUpperCase()}</span>) 
+                      : (<span 
+                          className="data-unavailable"
+                          title="No investment action available for this stock. Please update the Financial Page">N/A
+                        </span>)
+                    }
                   </td>
                   <td>
                     <div className="action-buttons">
@@ -419,7 +457,7 @@ const StockPage: React.FC = () => {
 
       {/* Add New Exchange Form */}
       <div className="card">
-        <h2 className="card-header">
+        <h2>
           {isEditing ? 'Edit Stock' : 'Add New Stock'}
         </h2>
 

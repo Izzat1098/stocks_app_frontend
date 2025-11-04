@@ -13,7 +13,7 @@ import {
 } from 'chart.js';
 import { stockService, StockData } from '../services/stockService';
 import financialService, { FinancialData, FinancialDataAll, FinancialDataCalculated, FinancialDataWithMeta, FinancialMetric, YearlyFinancials, YearlyFinancialsCalculated } from '../services/financialService';
-import investmentService, { InvestmentSummary, InvestmentSummaryField, investmentSummaryFields } from '../services/investmentService';
+import investmentService, { InvestmentSummary, InvestmentSummaryCalculated, InvestmentSummaryField, investmentSummaryFields } from '../services/investmentService';
 import promptService, { PromptResponse } from '../services/promptService';
 import './FinancialPage.css';
 import { format } from 'path';
@@ -57,6 +57,7 @@ const FinancialPage: React.FC = () => {
   const [originalInvestmentSummary, setOriginalInvestmentSummary] = useState<InvestmentSummary>({});
   const [hasUnsavedSummaryChanges, setHasUnsavedSummaryChanges] = useState(false);
   const [investInputValues, setInvestInputValues] = useState<{[key: string]: string}>({});
+  const [investmentSummaryCalculated, setInvestmentSummaryCalculated] = useState<InvestmentSummaryCalculated>({});
 
   // Collapsible sections state
   const [showCharts, setShowCharts] = useState(true);
@@ -385,12 +386,14 @@ const FinancialPage: React.FC = () => {
         console.log('Fetched investment summary:', summary);
         if (isMounted && summary) {
           setInvestmentSummary(summary);
+          setInvestmentSummaryCalculated(investmentService.calculateMetrics(summary, financialDataAll));
           setOriginalInvestmentSummary(JSON.parse(JSON.stringify(summary)));
           setHasUnsavedSummaryChanges(false);
 
         } else if (isMounted) {
           // No summary found, initialize empty
           setInvestmentSummary({});
+          setInvestmentSummaryCalculated({});
           setOriginalInvestmentSummary({});
           setHasUnsavedSummaryChanges(false);
         }
@@ -403,6 +406,7 @@ const FinancialPage: React.FC = () => {
         console.error('Error fetching investment summary:', error);
         if (isMounted) {
           setInvestmentSummary({});
+          setInvestmentSummaryCalculated({});
           setOriginalInvestmentSummary({});
         }
       }
@@ -434,9 +438,13 @@ const FinancialPage: React.FC = () => {
   useEffect(() => {
     investmentSummaryFields.map((field, index) => {
       if (field.type === 'select') {
-        updateSelectStyle(field.key, index, `select-${field.key}`);
+        const fieldKey = field.key as keyof InvestmentSummary; 
+        updateSelectStyle(fieldKey, index, `select-${fieldKey}`);
       }
     }); 
+
+    setInvestmentSummaryCalculated(investmentService.calculateMetrics(investmentSummary, financialDataAll));
+
   }, [investmentSummary]);
 
   // Recalculate when financialData changes (user edits)
@@ -861,50 +869,6 @@ const FinancialPage: React.FC = () => {
     }
   };
 
-  // Calculate price to earnings ratio
-  const calculatePERatio = (currentYear: string): number | null => {
-    const currentYearIndex = years.indexOf(currentYear);
-    const currentSharePrice = financialData[currentYear]?.share_price_at_report_date;
-    const currentEarningsPerShare = financialData[currentYear]?.earnings_per_share;
-
-    if (!currentSharePrice || !currentEarningsPerShare || currentSharePrice === 0 || currentEarningsPerShare === 0) return null;
-    
-    return currentSharePrice / currentEarningsPerShare;
-  };
-
-
-  // Calculate percentage increase (with CAGR for first year)
-  const calculatePercentageIncrease = (currentYear: string, metricKey: keyof YearlyFinancials | keyof YearlyFinancialsCalculated): string => {
-    const currentYearIndex = years.indexOf(currentYear);
-    if (currentYearIndex < 0) return '-'; // No previous year to compare
-
-    const currentValue = financialDataAll[currentYear]?.[metricKey];
-
-    if (currentYearIndex === 0) { // for CAGR calculation at the first year
-      const nYears = years.length;
-      const latestValue = financialDataAll[years[nYears - 1]]?.[metricKey];
-      if (latestValue && currentValue && latestValue > 0 && currentValue > 0 && nYears > 1) {
-        const CAGR = (Math.pow((latestValue / currentValue), (1 / (nYears - 1))) - 1) * 100;
-        if (CAGR > 0) {
-          return `CAGR = +${CAGR.toFixed(1)}%`;
-        } else {
-          return `CAGR = ${CAGR.toFixed(1)}%`;
-        }
-      } else return '-';
-    }
-    
-    const previousYear = years[currentYearIndex - 1];
-    const previousValue = financialDataAll[previousYear]?.[metricKey];
-    if (!currentValue || !previousValue || previousValue === 0) return '-';
-
-    const revenueIncrease = ((currentValue - previousValue) / previousValue) * 100;
-    if (revenueIncrease > 0) {
-      return `+${revenueIncrease.toFixed(1)}%`;
-    } else {
-      return `${revenueIncrease.toFixed(1)}%`;
-    }
-  };
-
 
   // Combined chart data with dual Y-axes
   const combinedChartData = {
@@ -1148,24 +1112,29 @@ const FinancialPage: React.FC = () => {
             {investmentSummaryFields.map((field, index) => {
 
               if (field.type === 'calculated') {
-                const calculatedValues = field.calculate 
-                  ? field.calculate(investmentSummary, financialDataAll)
-                  : null;
+                const calculatedValues = investmentSummaryCalculated[field.key as keyof InvestmentSummaryCalculated];
+                console.log(`Calculated2 field values for ${field.key}:`, calculatedValues);
 
                 const nDisplayValues = calculatedValues?.length;
                 if ((nDisplayValues ?? 0) > 2) {
                   console.error('Calculated field returns more than 2 values, which is not supported:', field);
                 }
+
                 const displayValues = [];
 
-                for (const val of (calculatedValues || [])) {
-                  const displayValue = field.format 
-                    ? field.format(val)
-                    : val?.toString() || '-';
-                  displayValues.push(displayValue);
+                if (calculatedValues?.[0] && field.format_primary) {
+                  displayValues[0] = field.format_primary(calculatedValues[0]);
+                } else {
+                  displayValues[0] = calculatedValues?.[0] || '-';
                 }
 
-                const columnCount = displayValues.length + 1;
+                if (calculatedValues?.[1] && field.format_secondary) {
+                  displayValues[1] = field.format_secondary(calculatedValues[1]);
+                } else {
+                  displayValues[1] = calculatedValues?.[1] || '-';
+                }
+
+                const columnCount = (nDisplayValues ?? 1) + 1;
                 const gridTemplate = columnCount === 2 
                   ? '3fr 3fr'
                   : '4fr 2fr 2fr'
@@ -1178,19 +1147,18 @@ const FinancialPage: React.FC = () => {
                   <div key={`${field.key}-${index}`} 
                     className="form-row calculated-row" 
                     style={{ gridTemplateColumns: gridTemplate }}>
-                    <label className="form-label">{field.label}</label>
+                    <label className="form-label" title={field.title}>{field.label}</label>
                     <div key={`${field.key}-${index}-1`} className="calculated-value-large">{displayValues[0]}</div>
                     { (nDisplayValues ?? 0) > 1 && (
-                      <div key={`${field.key}-${index}-2`} className="calculated-value-large">{`${displayValues[1]} ${secondaryLabel}`}</div>
+                      <div key={`${field.key}-${index}-2`} className="calculated-value-large">{displayValues[1]}</div>
                     )}
-                    
                   </div>
                 );
 
               } else if (field.type === 'input') {
                 return (
                   <div key={field.key} className="form-row">
-                    <label className="form-label">{field.label}</label>
+                    <label className="form-label" title={field.title}>{field.label}</label>
                     <input
                       type={field.inputType}
                       step={field.step}
@@ -1198,8 +1166,9 @@ const FinancialPage: React.FC = () => {
                         if (investInputValues[field.key] !== undefined) {
                           return investInputValues[field.key];
                         }
-                        return investmentSummary?.[field.key]
-                          ? formatNumber(investmentSummary[field.key] as number, field.decimals || 0)
+                        const fieldKey = field.key as keyof InvestmentSummary;
+                        return investmentSummary?.[fieldKey]
+                          ? formatNumber(investmentSummary[fieldKey] as number, field.decimals || 0)
                           : '';
                         }
                       )()}
@@ -1214,7 +1183,7 @@ const FinancialPage: React.FC = () => {
                         const rawValue = investInputValues[field.key];
                         if (rawValue !== undefined) {
                           const numericValue = parseFormattedNumber(rawValue);
-                          updateInvestmentSummary(field.key, numericValue);
+                          updateInvestmentSummary(field.key as keyof InvestmentSummary, numericValue);
 
                           setInvestInputValues(prev => {
                             const updated = { ...prev };
@@ -1224,7 +1193,7 @@ const FinancialPage: React.FC = () => {
                         }
                       }}
                       onPaste={(e) =>
-                        handlePasteInvestmentSummary(e, field.key)}
+                        handlePasteInvestmentSummary(e, field.key as keyof InvestmentSummary)}
                       className="form-input"
                       placeholder={field.placeholder}
                     />
@@ -1234,18 +1203,18 @@ const FinancialPage: React.FC = () => {
               } else if (field.type === 'date') {
                 return (
                     <div key={field.key} className="form-row">
-                    <label className="form-label">{field.label}</label>
+                    <label className="form-label" title={field.title}>{field.label}</label>
                     <input
                       type={field.inputType}
                       value={(() => {
-                      const inputValue = investmentSummary[field.key] as string;
+                      const inputValue = investmentSummary[field.key as keyof InvestmentSummary] as string;
                       return inputValue
                         ? inputValue
                         : '';
                       })()}
                       onChange={(e) => {
                         const value = e.target.value;
-                        updateInvestmentSummary(field.key, value);
+                        updateInvestmentSummary(field.key as keyof InvestmentSummary, value);
                       }}
                       className="form-input"
                       placeholder={new Date().toISOString().split('T')[0]}
@@ -1256,16 +1225,16 @@ const FinancialPage: React.FC = () => {
               } else if (field.type === 'select' && field.options) {
                 return (
                   <div key={field.key} className="form-row">
-                    <label className="form-label">{field.label}</label>
+                    <label className="form-label" title={field.title}>{field.label}</label>
                     <select
-                      value={investmentSummary[field.key] || ''}
+                      value={investmentSummary[field.key as keyof InvestmentSummary] || ''}
                       id={`select-${field.key}`}
                       onChange={(e) => {
-                        updateSelectStyle(field.key, index, `select-${field.key}`);
-                        updateInvestmentSummary(field.key, e.target.value);
+                        updateSelectStyle(field.key as keyof InvestmentSummary, index, `select-${field.key}`);
+                        updateInvestmentSummary(field.key as keyof InvestmentSummary, e.target.value);
                       }}
-                      onFocus={(e) => {updateSelectStyle(field.key, index, `select-${field.key}`, true)}}
-                      onBlur={(e) => {updateSelectStyle(field.key, index, `select-${field.key}`)}}
+                      onFocus={(e) => {updateSelectStyle(field.key as keyof InvestmentSummary, index, `select-${field.key}`, true)}}
+                      onBlur={(e) => {updateSelectStyle(field.key as keyof InvestmentSummary, index, `select-${field.key}`)}}
                       className="form-input"
                     >
                       {field.options.map(option => (
@@ -1280,11 +1249,11 @@ const FinancialPage: React.FC = () => {
               } else if (field.type === 'textarea') {
                 return (
                   <div key={field.key} className="form-row">
-                    <label className="form-label">{field.label}</label>
+                    <label className="form-label" title={field.title}>{field.label}</label>
                     <textarea
-                      value={investmentSummary[field.key] || ''}
+                      value={investmentSummary[field.key as keyof InvestmentSummary] || ''}
                       onChange={(e) => 
-                        updateInvestmentSummary(field.key, e.target.value)}
+                        updateInvestmentSummary(field.key as keyof InvestmentSummary, e.target.value)}
                       className="form-input form-textarea"
                       placeholder={field.placeholder}
                       rows={field.rows}
@@ -1462,9 +1431,6 @@ const FinancialPage: React.FC = () => {
                                 ? formatNumber(financialData[year]![metricKey]!, metric.decimals || 0)
                                 : '';
                             })()}
-
-
-
                             onChange={(e) => {
                               const metricKey = metric.key as keyof YearlyFinancials;
                               handleInputChange(year, metricKey, e.target.value)}}
@@ -1503,15 +1469,30 @@ const FinancialPage: React.FC = () => {
                       {metric.label}
                     </td>
                     {years.map(year => {
-                      const increases = calculatePercentageIncrease(year, fieldKey);
-                      const isNegative = increases.includes('-');
+                      const increases = financialService.calculatePercentageIncrease(year, years, fieldKey, financialDataAll);
+                      // const increases = calculatePercentageIncrease(year, fieldKey);
+                      let isNegative = false;
+                      let displayValue = '';
+
+                      if (increases == null) {
+                        displayValue = '-';
+                      } else if (typeof increases === 'string' && increases.includes('-')) {
+                        displayValue = increases;
+                        isNegative = true;
+                      } else if (typeof increases === 'string' && !increases.includes('-')) {
+                        displayValue = increases;
+                        isNegative = false;
+                      } else if (typeof increases === 'number' && increases < 0) {
+                        isNegative = true;
+                        displayValue = `${increases.toFixed(1)}%`;
+                      } else if (typeof increases === 'number' && increases > 0) {
+                        displayValue = `${increases.toFixed(1)}%`;
+                      }
+
                       return (
                         <td key={`${year}-${fieldKey}-increase`} className="calculated-cell">
                           <div className={`calculated-value ${isNegative ? 'negative-value' : 'positive-value'}`}>
-                            {increases !== null 
-                              ? `${increases}`
-                              : '-'
-                            }
+                            {displayValue}
                           </div>
                         </td>
                       );

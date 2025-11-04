@@ -14,6 +14,7 @@ export interface StockData {
   ai_description: string;
   stockPrice?: number | null;
   stockPriceFetchedDateTime?: string;
+  investmentAction?: string | null;
 }
 
 export interface StockFormData {

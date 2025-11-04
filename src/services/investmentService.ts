@@ -1,5 +1,5 @@
 import api from './api';
-import { FinancialDataAll } from './financialService'; 
+import financialService, { FinancialDataAll } from './financialService'; 
 
 
 export interface InvestmentSummary {
@@ -14,11 +14,21 @@ export interface InvestmentSummary {
   calculated_field?: string;
 }
 
+export interface InvestmentSummaryCalculated {
+  price_earnings_ratio?: (number | null)[];
+  number_of_shares?: (number | null)[];
+  average_dividend?: (number | null)[];
+  net_profit_margin?: (number | null)[];
+  profit_vs_per?: (string | number | null)[];
+  profit_div_vs_per?: (string | number | null)[];
+}
+
 export interface InvestmentSummaryField {
-  key: keyof InvestmentSummary;
+  key: keyof InvestmentSummary | keyof InvestmentSummaryCalculated;
   label: string;
+  title?: string;
   secondary_label?: string;
-  type: 'input' | 'select' | 'textarea' | 'calculated' | 'date';
+  type: 'input' | 'select' | 'textarea' | 'calculated' | 'calculated2' | 'date';
   inputType?: 'text' | 'number' | 'date';
   step?: string;
   decimals?: number;
@@ -27,7 +37,21 @@ export interface InvestmentSummaryField {
   options?: { value: string; label: string }[];
   optionStyles?: { [value: string]: { backgroundColor: string; color: string } };
   calculate?: (summary: InvestmentSummary, financialDataAll: FinancialDataAll) => Array<string | number | null | undefined>;
-  format?: (value: any) => string;
+  format_primary?: (value: any) => string;
+  format_secondary?: (value: any) => string;
+}
+
+const getMinMax = (values: (string | number | null | undefined)[]): [number, number] | null => {
+  const filtered = values.filter(v => 
+    v !== null && 
+    v !== undefined &&
+    typeof v === 'number' && 
+    !isNaN(v)
+  ) as number[];
+
+  if (filtered.length === 0) return null;
+
+  return [Math.min(...filtered), Math.max(...filtered)];
 }
 
 export const investmentSummaryFields: InvestmentSummaryField[] = [
@@ -72,84 +96,44 @@ export const investmentSummaryFields: InvestmentSummaryField[] = [
     decimals: 2,
   },
   {
-    key: 'calculated_field',
+    key: 'net_profit_margin',
     label: 'Net Profit Margin (%):',
-    secondary_label: 'vs Latest Year',
     type: 'calculated',
-    calculate: (summary, financialDataAll) => {
-      let currentNetMargin = null;
-      const revenue = summary.past_4q_revenue;
-      const netProfit = summary.past_4q_net_profit;
-
-      if (!revenue || !netProfit || revenue === 0) {
-          currentNetMargin = null;
-      } else {
-          currentNetMargin = (netProfit / revenue) * 100;
-      }
-
-      let netMarginIncrease = null;
-      const nYears = Object.keys(financialDataAll).length;
-      const lastYearMargin = nYears > 1 
-        ? financialDataAll[Object.keys(financialDataAll)[nYears - 1]].profit_after_tax_for_shareholders_margin 
-        : null;
-  
-      if (!currentNetMargin || !lastYearMargin || lastYearMargin === 0) {
-        netMarginIncrease = null;
-      } else {
-        netMarginIncrease = 100 * (currentNetMargin - lastYearMargin) / lastYearMargin;
-      }
-
-      return [currentNetMargin, netMarginIncrease];
-    },
-    format: (value) => value !== null ? `${value.toFixed(2)}%` : '-',
+    format_primary: (value) => value !== null ? `${value.toFixed(2)}%` : '-',
+    format_secondary: (value) => value !== null ? `${(value).toFixed(2)}% vs Latest Year` : '-',
   },
   {
-    key: 'calculated_field',
+    key: 'number_of_shares',
+    label: 'Number of Shares:',
+    title: 'Too much dilution is bad. Look for stocks with stable or decreasing number of shares over the years.',
+    type: 'calculated',
+    format_primary: (value) => value !== null ? `${thousandsFormatter(value)}` : '-',
+    format_secondary: (value) => value !== null ? `${(value).toFixed(2)}% vs Latest Year` : '-',
+  },
+  {
+    key: 'average_dividend',
+    label: 'Average Dividend Yield (%):',
+    type: 'calculated',
+    format_primary: (value) => value !== null ? `${value.toFixed(2)}%` : '-',
+  },
+  {
+    key: 'price_earnings_ratio',
     label: 'Current Price Earnings Ratio:',
     type: 'calculated',
-    calculate: (summary) => {
-      const sharePrice = summary.current_share_price;
-      const eps = summary.past_4q_earnings_per_share;
-      if (!sharePrice || !eps || eps === 0) return [null];
-      return [sharePrice / eps];
-    },
-    format: (value) => value !== null ? value.toFixed(2) : '-',
+    format_primary: (value) => value !== null ? value.toFixed(2) : '-',
   },
   {
-    key: 'calculated_field',
-    label: 'Number of Shares:',
-    secondary_label: '% vs Latest Year',
+    key: 'profit_vs_per',
+    label: 'Profit Growth Rate (%) vs Price Earnings Ratio:',
+    title: 'Profit Growth Rate should be EQUAL OR MORE than PER',
     type: 'calculated',
-    calculate: (summary, financialDataAll) => {
-      const netProfit = summary.past_4q_net_profit;
-      const eps = summary.past_4q_earnings_per_share;
-      let numShares = null;
-      if (!netProfit || !eps || eps === 0) {
-        numShares = null;
-      } else {
-        numShares = netProfit / eps;
-      }
-
-      let numSharesIncrease = null;
-      const nYears = Object.keys(financialDataAll).length;
-      const lastYearShares = nYears > 1 
-        ? financialDataAll[Object.keys(financialDataAll)[nYears - 1]].number_of_shares 
-        : null;
-
-      if (!numShares || !lastYearShares || lastYearShares === 0) {
-        numSharesIncrease = null;
-      } else {
-        numSharesIncrease = 100 * (numShares - lastYearShares) / lastYearShares;
-      }
-      return [numShares, numSharesIncrease];
-    },
-    format: (value) => {
-      if (value === null) return '-';
-      return new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(value);
-    },
+  },
+  {
+    key: 'profit_div_vs_per',
+    label: 'Long Term Profit Growth Rate & Dividend vs Latest Price Earnings Ratio:',
+    title: 'Long Term Profit Growth Rate + Dividend Yield should be EQUAL OR MORE than PER: >1.50 is OK; > 2.0 is GOOD',
+    type: 'calculated',
+    format_primary: (value) => value !== null ? value.toFixed(2) : '-',
   },
   {
     key: 'stock_type',
@@ -165,26 +149,6 @@ export const investmentSummaryFields: InvestmentSummaryField[] = [
       { value: 'asset_play', label: 'Asset Play: Have huge hidden assets' },
       { value: 'dead_stock', label: 'DEAD Stock: Static or downward NP trend' },
     ],
-  },
-  {
-    key: 'calculated_field',
-    label: 'Average Dividend Yield (%):',
-    type: 'calculated',
-    calculate: (summary, financialDataAll) => {
-      const years = Object.keys(financialDataAll).sort();
-      if (years.length === 0) return [null];
-      let totalDividends = 0;
-      let count = 0;
-      years.forEach(year => {
-        const dividend = financialDataAll[year]?.dividend_yield;
-        if (dividend !== undefined && dividend !== null) {
-          totalDividends += dividend;
-          count++;
-        }
-      });
-      return count > 0 ? [totalDividends / count] : [null];
-    },
-    format: (value) => value !== null ? `${value.toFixed(2)}%` : '-',
   },
   {
     key: 'invest',
@@ -213,6 +177,17 @@ export const investmentSummaryFields: InvestmentSummaryField[] = [
   },
 ];
 
+const thousandsFormatter = (value: number | null): string => {
+  if (value === null) return '-';
+  console.log(`Formatting value with thousandsFormatter: ${value}`);
+  const formattedValue = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+  console.log(`Formatted value with thousandsFormatter: ${formattedValue}`);
+  return formattedValue;
+}
+
 
 export const investmentService = {
 
@@ -234,6 +209,160 @@ export const investmentService = {
     const response = await api.post(`/investment_summary/${stockId}`, data, { signal });
     return response.data;
   },
+
+  calculateMetrics: (summary: InvestmentSummary, data: FinancialDataAll) => {
+    const summaryCalculated: InvestmentSummaryCalculated = {};
+
+    summaryCalculated.net_profit_margin = (() => {
+      let currentNetMargin = null;
+      const revenue = summary.past_4q_revenue;
+      const netProfit = summary.past_4q_net_profit;
+
+      if (!revenue || !netProfit || revenue === 0) {
+          currentNetMargin = null;
+      } else {
+          currentNetMargin = (netProfit / revenue) * 100;
+      }
+
+      let netMarginIncrease = null;
+      const nYears = Object.keys(data).length;
+      const lastYearMargin = nYears > 1 
+        ? data[Object.keys(data)[nYears - 1]].profit_after_tax_for_shareholders_margin 
+        : null;
+  
+      if (!currentNetMargin || !lastYearMargin || lastYearMargin === 0) {
+        netMarginIncrease = null;
+      } else {
+        netMarginIncrease = 100 * (currentNetMargin - lastYearMargin) / lastYearMargin;
+      }
+
+      return [currentNetMargin, netMarginIncrease];
+    })();
+
+    summaryCalculated.price_earnings_ratio = (() => {
+      const sharePrice = summary.current_share_price;
+      const eps = summary.past_4q_earnings_per_share;
+
+      if (!sharePrice || !eps || eps === 0) return [null];
+
+      return [sharePrice / eps];
+    })();
+
+    summaryCalculated.number_of_shares = (() => {
+      const netProfit = summary.past_4q_net_profit;
+      const eps = summary.past_4q_earnings_per_share;
+
+      const numShares = (!netProfit || !eps || eps === 0)
+        ? null
+        : netProfit / eps;
+
+      let numSharesIncrease = null;
+      const nYears = Object.keys(data).length;
+      const lastYearShares = nYears > 1 
+        ? data[Object.keys(data)[nYears - 1]].number_of_shares 
+        : null;
+
+      numSharesIncrease = (!numShares || !lastYearShares || lastYearShares === 0)
+        ? null
+        : 100 * (numShares - lastYearShares) / lastYearShares;
+      return [numShares, numSharesIncrease];
+    })();
+
+    summaryCalculated.average_dividend = (() => {
+      const years = Object.keys(data).sort();
+      if (years.length === 0) return [null];
+      let totalDividends = 0;
+      let count = 0;
+      years.forEach(year => {
+        const dividend = data[year]?.dividend_yield;
+        if (dividend !== undefined && dividend !== null) {
+          totalDividends += dividend;
+          count++;
+        }
+      });
+      return count > 0 
+        ? [totalDividends / count] 
+        : [null];
+    })();
+
+
+    summaryCalculated.profit_vs_per = (() => {
+      const years = Object.keys(data).sort();
+      const fieldKey = 'profit_after_tax_for_shareholders';
+      const profitIncreases: (string | number | null)[] = [];
+      const perIncreases: (number | null)[] = [];
+      
+
+      years.forEach(year => {
+        profitIncreases.push(financialService.calculatePercentageIncrease(year, years, fieldKey, data));
+        perIncreases.push(data[year]?.price_earnings_ratio_report_date ?? null);
+        perIncreases.push(data[year]?.price_earnings_ratio_max ?? null);
+        perIncreases.push(data[year]?.price_earnings_ratio_min ?? null);
+      });
+
+      const cagrProfit =
+        (typeof profitIncreases[0] === 'string' && profitIncreases[0].toLowerCase().includes('cagr'))
+        ? profitIncreases[0] 
+        : null;
+
+      const profitMinMax = getMinMax(profitIncreases);
+      const perMinMax = getMinMax(perIncreases);
+
+      const returnedProfit = 
+        `Profit: ${cagrProfit ? cagrProfit + ' , ' : ''}`
+        + `Range (${profitMinMax ? profitMinMax[0].toFixed(1) + '% to ' + profitMinMax[1].toFixed(1) + '%' : ''})`;
+
+      const returnedPER = 
+        `PER Range (${perMinMax ? perMinMax[0].toFixed(1) + '% to ' + perMinMax[1].toFixed(1) + '%' : ''})`;
+
+      return [returnedProfit, returnedPER];
+    })();
+
+    summaryCalculated.profit_div_vs_per = (() => {
+      const years = Object.keys(data).sort();
+      const fieldKey = 'profit_after_tax_for_shareholders';
+      const profitIncreases: (string | number | null)[] = [];
+      let latestPer: number | null = null;
+      let ratio: number | null = null;
+      let aveDividend: number | null = null;
+
+      let totalDividends = 0;
+      let count = 0;
+
+      years.forEach(year => {
+        profitIncreases.push(financialService.calculatePercentageIncrease(year, years, fieldKey, data));
+
+        const dividend = data[year]?.dividend_yield;
+        if (dividend !== undefined && dividend !== null) {
+          totalDividends += dividend;
+          count++;
+        }
+      });
+
+      if (count > 0) {
+        aveDividend = totalDividends / count;
+      }
+
+      const cagrProfit =
+        (typeof profitIncreases[0] === 'string' && profitIncreases[0].toLowerCase().includes('cagr'))
+        ? parseFloat(profitIncreases[0].replace(/[^0-9.-]/g, ''))
+        : null;
+
+      const sharePrice = summary.current_share_price;
+      const eps = summary.past_4q_earnings_per_share;
+      if (sharePrice && eps && eps !== 0) {
+        latestPer = sharePrice / eps;
+      }
+
+      if (cagrProfit !== null && latestPer !== null && latestPer > 0) {
+        ratio = (cagrProfit + (aveDividend ?? 0)) / latestPer;
+      }
+
+      return [ratio];
+    })();
+
+    return summaryCalculated;
+  }
 };
 
 export default investmentService;
