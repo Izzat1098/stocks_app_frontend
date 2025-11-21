@@ -334,279 +334,285 @@ const StockPage: React.FC = () => {
 
 	return (
 		<div className="container">
-			<h1>Stocks</h1>
-
       {/* Stocks List */}
-      <div className="card">
-				<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-					<h2>Stocks List</h2>
-					{stocks.length > 0 && (
-						<button 
-							onClick={fetchAllStockPrices}
-							disabled={pricesLoading}
-							className="btn btn-secondary"
-							title="Refresh stock prices"
-						>
-							{pricesLoading ? 'Refreshing...' : '🔄 Refresh Prices'}
-						</button>
-					)}
-				</div>
-
-				{loading && (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            Loading stocks...
+      <div className="section-container">
+        <div className="stocks-list-container">
+          <div className="stocks-list-header">
+            <h1>Stocks List</h1>
+            {stocks.length > 0 && (
+              <button 
+                onClick={fetchAllStockPrices}
+                disabled={pricesLoading}
+                className="link-btn"
+                title="Refresh stock prices"
+              >
+                {pricesLoading ? 'Refreshing...' : '🔄 Refresh Prices'}
+              </button>
+            )}
           </div>
-        )}
 
-        {error && !loading && (
-          <div className="error" style={{ textAlign: 'center', padding: '2rem' }}>
-            {error}
-            <br />
-            <button 
-              onClick={fetchStocks} 
-              className="btn btn-primary" 
-              style={{ marginTop: '1rem' }}
-            >
-              Retry
-            </button>
-          </div>
-        )}
+          {loading && (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <p>Loading stocks...</p>
+            </div>
+          )}
 
-        {!loading && !error && stocks.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            No stocks found. Add some stocks using the form below.
-          </div>
-        )}
+          {error && !loading && (
+            <div className="error" style={{ textAlign: 'center', padding: '2rem' }}>
+              {error}
+              <br />
+              <button 
+                onClick={fetchStocks} 
+                className="link-btn link-btn-login"
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
-        {!loading && !error && stocks.length > 0 && (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Company Name</th>
-								<th>Stock Ticker</th>
-                <th>Abbreviation</th>
-                <th>Sector</th>
-								<th>Current Price</th>
-                <th>Invest?</th>
-								<th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stocks.map((stock) => (
-                <tr key={stock.id || `${stock.ticker}-${stock.company_name}`} 
-                    className="clickable-row"
-                    onClick={() => handleStockClick(stock)}
-                    title="Click to view details">
-                  <td>{stock.company_name}</td>
-                  <td><strong>{stock.ticker}</strong></td>
-                  <td>{stock.abbreviation}</td>
-                  <td>{stock.sector}</td>
-                  <td>
-                    {pricesLoading 
-                      ? (<span className="loading-price">Loading...</span>) 
-                      : stock.stockPrice 
-                      ? (<span className="stock-price">${stock.stockPrice.toFixed(2)}</span>) 
-                      : (<span 
-                          className="data-unavailable"
-                          title="Unable to fetch share price. Please recheck stock details and ensure it is correct">N/A
-                        </span>)
-                    }
-                  </td>
-                  <td>
-                    {investmentLoading 
-                      ? (<span className="loading-investment">Loading...</span>) 
-                      : stock.investmentAction 
-                      ? (<span className="investment-action">{stock.investmentAction.toUpperCase()}</span>) 
-                      : (<span 
-                          className="data-unavailable"
-                          title="No investment action available for this stock. Please update the Financial Page">N/A
-                        </span>)
-                    }
-                  </td>
-                  <td>
-                    <div className="action-buttons">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent row click
-                          handleEdit(stock);
-                        }}
-                        className="btn-icon btn-edit"
-                        title="Edit Stock"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation(); // Prevent row click
-                          handleDelete(stock.id!);
-                        }}
-                        className="btn-icon btn-delete"
-                        title="Delete Stock"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </td>
+          {!loading && !error && stocks.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <p>No stocks found. Add some stocks using the form below.</p>
+            </div>
+          )}
+
+          {!loading && !error && stocks.length > 0 && (
+            // <div className="stocks-table-container">
+            <table className="stocks-list-table">
+              <thead>
+                <tr>
+                  <th>Company Name</th>
+                  <th>Stock Ticker</th>
+                  <th>Abbreviation</th>
+                  <th>Sector</th>
+                  <th>Current Price</th>
+                  <th>Invest?</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              </thead>
+              <tbody>
+                {stocks.map((stock) => (
+                  <tr key={stock.id || `${stock.ticker}-${stock.company_name}`} 
+                      className="clickable-row"
+                      onClick={() => handleStockClick(stock)}
+                      title="Click to view details">
+                    <td>{stock.company_name}</td>
+                    <td><strong>{stock.ticker}</strong></td>
+                    <td>{stock.abbreviation}</td>
+                    <td>{stock.sector}</td>
+                    <td>
+                      {pricesLoading 
+                        ? (<span className="loading-price">Loading...</span>) 
+                        : stock.stockPrice 
+                        ? (<span className="stock-price">${stock.stockPrice.toFixed(2)}</span>) 
+                        : (<span 
+                            className="data-unavailable"
+                            title="Unable to fetch share price. Please recheck stock details and ensure it is correct">N/A
+                          </span>)
+                      }
+                    </td>
+                    <td>
+                      {investmentLoading 
+                        ? (<span className="loading-investment">Loading...</span>) 
+                        : stock.investmentAction 
+                        ? (<span className="investment-action">{stock.investmentAction.toUpperCase()}</span>) 
+                        : (<span 
+                            className="data-unavailable"
+                            title="No investment action available for this stock. Please update the Financial Page">N/A
+                          </span>)
+                      }
+                    </td>
+                    <td>
+                      <div className="stocks-list-act-btn">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent row click
+                            handleEdit(stock);
+                          }}
+                          className="btn-icon btn-edit"
+                          title="Edit Stock"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent row click
+                            handleDelete(stock.id!);
+                          }}
+                          className="btn-icon btn-delete"
+                          title="Delete Stock"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
 
 
       {/* Add New Exchange Form */}
-      <div className="card">
-        <h2>
-          {isEditing ? 'Edit Stock' : 'Add New Stock'}
-        </h2>
+      <div className="section-container">
+        <div className="add-stock-container">
+          <h1>
+            {isEditing ? 'Edit Stock' : 'Add New Stock'}
+          </h1>
+          
+          <div className="add-stock-form">
+            <form className="add-stock-form-items2" onSubmit={handleSubmit}>
+              <div className="add-stock-form-items">
+                <div className="add-stock-form-item">
+                  <label htmlFor="company_name">Company Name</label>
+                  <input
+                    type="text"
+                    id="company_name"
+                    name="company_name"
+                    value={formData.company_name}
+                    onChange={handleChange}
+                    required
+                    maxLength={60}
+                    disabled={submitting}
+                    placeholder="e.g., Apple Inc."
+                  />
+                </div>
 
-				<form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="company_name">Company Name</label>
-            <input
-              type="text"
-              id="company_name"
-              name="company_name"
-              value={formData.company_name}
-              onChange={handleChange}
-              required
-							maxLength={60}
-              disabled={submitting}
-              placeholder="e.g., Apple Inc."
-            />
+                <div className="add-stock-form-item">
+                  <label htmlFor="ticker">Stock Ticker</label>
+                  <input
+                    type="text"
+                    id="ticker"
+                    name="ticker"
+                    value={formData.ticker}
+                    onChange={handleChange}
+                    required
+                    disabled={submitting}
+                    placeholder="e.g., AAPL"
+                    maxLength={10}
+                  />
+                </div>
+
+                <div className="add-stock-form-item">
+                  <label htmlFor="abbreviation">Abbreviation</label>
+                  <input
+                    type="text"
+                    id="abbreviation"
+                    name="abbreviation"
+                    value={formData.abbreviation}
+                    onChange={handleChange}
+                    disabled={submitting}
+                    placeholder="e.g., APPLE"
+                    maxLength={10}
+                  />
+                </div>
+
+                <div className="add-stock-form-item">
+                  <label htmlFor="exchange_id">Stock Exchange</label>
+                  <select
+                    id="exchange_id"
+                    name="exchange_id"
+                    value={formData.exchange_id || ''}
+                    onChange={handleChange}
+                    disabled={submitting || exchangesLoading}
+                  >
+                    <option value="">Select an exchange...</option>
+                    {exchanges.map((exchange) => (
+                      <option key={exchange.id} value={exchange.id}>
+                        {exchange.name} ({exchange.abbreviation})
+                      </option>
+                    ))}
+                  </select>
+                  {exchangesLoading && (
+                    <small style={{ color: '#666', fontSize: '0.8rem' }}>
+                      Loading exchanges...
+                    </small>
+                  )}
+                </div>
+
+                <div className="add-stock-form-item">
+                  <label htmlFor="description">Description</label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    disabled={submitting}
+                    placeholder="e.g., NYSE"
+                    rows={4}
+                    style={{ resize: 'vertical' }}
+                  />
+                </div>
+
+                <div className="add-stock-form-item">
+                  <label htmlFor="sector">Sector</label>
+                  <select
+                    id="sector"
+                    name="sector"
+                    value={formData.sector || ''}
+                    onChange={handleChange}
+                    disabled={submitting}
+                  >
+                    <option value="">Select a sector...</option>
+                    {sectors.map((sector) => (
+                      <option key={sector.name} value={sector.name}>
+                        {sector.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="add-stock-form-item">
+                  <label htmlFor="country">Country</label>
+                  <select
+                    id="country"
+                    name="country"
+                    value={formData.country || ''}
+                    onChange={handleChange}
+                    disabled={submitting}
+                  >
+                    <option value="">Select a country...</option>
+                    {countries.map((country) => (
+                      <option key={country.name} value={country.name}>
+                        {country.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {errorForm && <div className="error">{errorForm}</div>}
+              {successMessage && <div className="success">{successMessage}</div>}
+
+              <div className="add-stock-form-btn">
+                <button
+                  type="submit"
+                  className="link-btn"
+                  disabled={submitting}
+                >
+                  {submitting 
+                    ? (isEditing ? 'Updating...' : 'Adding...') 
+                    : (isEditing ? 'Update Stock' : 'Add Stock')
+                  }
+                </button>
+                
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="link-btn link-btn-secondary"
+                    disabled={submitting}
+                    style={{ marginLeft: '10px' }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
           </div>
-
-          <div className="form-group">
-            <label htmlFor="ticker">Stock Ticker</label>
-            <input
-              type="text"
-              id="ticker"
-              name="ticker"
-              value={formData.ticker}
-              onChange={handleChange}
-              required
-              disabled={submitting}
-              placeholder="e.g., AAPL"
-              maxLength={10}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="abbreviation">Abbreviation</label>
-            <input
-              type="text"
-              id="abbreviation"
-              name="abbreviation"
-              value={formData.abbreviation}
-              onChange={handleChange}
-              disabled={submitting}
-              placeholder="e.g., APPLE"
-              maxLength={10}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="exchange_id">Stock Exchange</label>
-            <select
-              id="exchange_id"
-              name="exchange_id"
-              value={formData.exchange_id || ''}
-              onChange={handleChange}
-              disabled={submitting || exchangesLoading}
-            >
-              <option value="">Select an exchange...</option>
-              {exchanges.map((exchange) => (
-                <option key={exchange.id} value={exchange.id}>
-                  {exchange.name} ({exchange.abbreviation})
-                </option>
-              ))}
-            </select>
-            {exchangesLoading && (
-              <small style={{ color: '#666', fontSize: '0.8rem' }}>
-                Loading exchanges...
-              </small>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="description">Description</label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              disabled={submitting}
-              placeholder="e.g., NYSE"
-							rows={4}
-							style={{ resize: 'vertical' }}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="sector">Sector</label>
-            <select
-              id="sector"
-              name="sector"
-              value={formData.sector || ''}
-              onChange={handleChange}
-              disabled={submitting}
-            >
-              <option value="">Select a sector...</option>
-              {sectors.map((sector) => (
-                <option key={sector.name} value={sector.name}>
-                  {sector.name}
-                </option>
-              ))}
-						</select>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="country">Country</label>
-            <select
-              id="country"
-              name="country"
-              value={formData.country || ''}
-              onChange={handleChange}
-              disabled={submitting}
-            >
-              <option value="">Select a country...</option>
-              {countries.map((country) => (
-                <option key={country.name} value={country.name}>
-                  {country.name}
-                </option>
-              ))}
-						</select>
-          </div>
-
-					{errorForm && <div className="error">{errorForm}</div>}
-					{successMessage && <div className="success">{successMessage}</div>}
-
-          <div className="form-buttons" style={{ marginTop: '1rem' }}>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={submitting}
-            >
-              {submitting 
-                ? (isEditing ? 'Updating...' : 'Adding...') 
-                : (isEditing ? 'Update Stock' : 'Add Stock')
-              }
-            </button>
-            
-            {isEditing && (
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="btn btn-secondary"
-                disabled={submitting}
-                style={{ marginLeft: '10px' }}
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-        </form>
+        </div>
       </div>
 
       {/* Stock Details Modal */}

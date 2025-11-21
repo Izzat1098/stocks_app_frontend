@@ -7,48 +7,52 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="container">
-      <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
-        <h1>Welcome to ValuIntel!</h1>
-        <p style={{ fontSize: '1.2rem', marginBottom: '2rem', color: '#666' }}>
-          Built by value investors for value investors, ValuIntel helps you track
-          your stock investments, financial records and helps you make more intelligent investment decisions.
-        </p>
-        
-        {!isAuthenticated ? (
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <Link to="/register" className="btn btn-primary">
-              Get Started
-            </Link>
-            <Link to="/login" className="btn btn-secondary">
-              Login
-            </Link>
-          </div>
-        ) : (
-          <div>
-            <Link to="/stocks" className="btn btn-primary">
-              View My Portfolio
-            </Link>
-          </div>
-        )}
-      </div>
+      <section className="welcome">
+        <div className="welcome">
+          <h1>Welcome to ValuIntel!</h1>
+          <p>
+            Built by value investors for value investors, ValuIntel helps you track
+            your stock investments, financial records and helps you make more intelligent investment decisions.
+          </p>
+          
+          {!isAuthenticated ? (
+            <div className='home-btn'>
+              <Link to="/register" className="link-btn link-btn-start">
+                Get Started
+              </Link>
+              <Link to="/login" className="link-btn link-btn-login">
+                Login
+              </Link>
+            </div>
+          ) : (
+            <div className='home-btn'>
+              <Link to="/stocks" className="link-btn link-btn-start">
+                View My Portfolio
+              </Link>
+            </div>
+          )}
+        </div>
+      </section>
       
-      <div className="card">
-        <h2>Features</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', marginTop: '1rem' }}>
-          <div>
-            <h3>💼 Stock Financial Data</h3>
-            <p>Add and manage your stock financial data easily</p>
-          </div>
-          <div>
-            <h3>🤖 Artificial Intelligence Insights</h3>
-            <p>Get AI insights on your selected stocks based on its financial data</p>
-          </div>
-          <div>
-            <h3>📈 Real-time Stock Prices</h3>
-            <p>Get up-to-date stock prices and market data</p>
+      <section className="features">
+        <div className="features">
+          <h1>Features</h1>
+          <div className="features-items">
+            <div className="feature-item">
+              <h3>💼 Stock Financial Data</h3>
+              <p>Add and manage your stock financial data easily</p>
+            </div>
+            <div className="feature-item">
+              <h3>🤖 Artificial Intelligence Insights</h3>
+              <p>Get AI insights on your selected stocks based on its financial data</p>
+            </div>
+            <div className="feature-item">
+              <h3>📈 Real-time Stock Prices</h3>
+              <p>Get up-to-date stock prices and market data</p>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };
