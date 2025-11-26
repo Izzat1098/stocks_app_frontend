@@ -15,7 +15,6 @@ import { stockService, StockData } from '../services/stockService';
 import financialService, { FinancialData, FinancialDataAll, FinancialDataCalculated, FinancialDataWithMeta, FinancialMetric, YearlyFinancials, YearlyFinancialsCalculated } from '../services/financialService';
 import investmentService, { InvestmentSummary, InvestmentSummaryCalculated, InvestmentSummaryField, investmentSummaryFields } from '../services/investmentService';
 import promptService, { PromptResponse } from '../services/promptService';
-import './FinancialPage.css';
 import { format } from 'path';
 
 // Register Chart.js components

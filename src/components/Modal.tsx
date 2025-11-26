@@ -34,12 +34,18 @@ const Modal: React.FC<ModalProps> = ({
   };
 
   return (
-    <div className="modal-overlay" onClick={handleOverlayClick}>
-      <div className={`modal-content ${getSizeClass()}`} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
+    <div 
+      className="modal-overlay-active" 
+      onClick={handleOverlayClick}
+    >
+      <div 
+        className={`modal-overlay-content ${getSizeClass()}`} 
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal-overlay-header">
           <h2>{title}</h2>
           <button 
-            className="modal-close-btn" 
+            className="modal-overlay-close-btn" 
             onClick={onClose}
             aria-label="Close modal"
           >
@@ -47,12 +53,12 @@ const Modal: React.FC<ModalProps> = ({
           </button>
         </div>
         
-        <div className="modal-body">
+        <div className="modal-overlay-body">
           {children}
         </div>
         
         {footer && (
-          <div className="modal-footer">
+          <div className="modal-overlay-footer">
             {footer}
           </div>
         )}

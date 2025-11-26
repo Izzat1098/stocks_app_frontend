@@ -378,78 +378,80 @@ const StockPage: React.FC = () => {
 
           {!loading && !error && stocks.length > 0 && (
             // <div className="stocks-table-container">
-            <table className="stocks-list-table">
-              <thead>
-                <tr>
-                  <th>Company Name</th>
-                  <th>Stock Ticker</th>
-                  <th>Abbreviation</th>
-                  <th>Sector</th>
-                  <th>Current Price</th>
-                  <th>Invest?</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stocks.map((stock) => (
-                  <tr key={stock.id || `${stock.ticker}-${stock.company_name}`} 
-                      className="clickable-row"
-                      onClick={() => handleStockClick(stock)}
-                      title="Click to view details">
-                    <td>{stock.company_name}</td>
-                    <td><strong>{stock.ticker}</strong></td>
-                    <td>{stock.abbreviation}</td>
-                    <td>{stock.sector}</td>
-                    <td>
-                      {pricesLoading 
-                        ? (<span className="loading-price">Loading...</span>) 
-                        : stock.stockPrice 
-                        ? (<span className="stock-price">${stock.stockPrice.toFixed(2)}</span>) 
-                        : (<span 
-                            className="data-unavailable"
-                            title="Unable to fetch share price. Please recheck stock details and ensure it is correct">N/A
-                          </span>)
-                      }
-                    </td>
-                    <td>
-                      {investmentLoading 
-                        ? (<span className="loading-investment">Loading...</span>) 
-                        : stock.investmentAction 
-                        ? (<span className="investment-action">{stock.investmentAction.toUpperCase()}</span>) 
-                        : (<span 
-                            className="data-unavailable"
-                            title="No investment action available for this stock. Please update the Financial Page">N/A
-                          </span>)
-                      }
-                    </td>
-                    <td>
-                      <div className="stocks-list-act-btn">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation(); // Prevent row click
-                            handleEdit(stock);
-                          }}
-                          className="btn-icon btn-edit"
-                          title="Edit Stock"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation(); // Prevent row click
-                            handleDelete(stock.id!);
-                          }}
-                          className="btn-icon btn-delete"
-                          title="Delete Stock"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </td>
+            <div className="stocks-list-table-container">
+              <table className="stocks-list-table">
+                <thead>
+                  <tr>
+                    <th>Company Name</th>
+                    <th>Stock Ticker</th>
+                    <th>Abbreviation</th>
+                    <th>Sector</th>
+                    <th>Current Price</th>
+                    <th>Invest?</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {stocks.map((stock) => (
+                    <tr key={stock.id || `${stock.ticker}-${stock.company_name}`} 
+                        className="clickable-row"
+                        onClick={() => handleStockClick(stock)}
+                        title="Click to view details">
+                      <td>{stock.company_name}</td>
+                      <td><strong>{stock.ticker}</strong></td>
+                      <td>{stock.abbreviation}</td>
+                      <td>{stock.sector}</td>
+                      <td>
+                        {pricesLoading 
+                          ? (<span className="loading-price">Loading...</span>) 
+                          : stock.stockPrice 
+                          ? (<span className="stock-price">${stock.stockPrice.toFixed(2)}</span>) 
+                          : (<span 
+                              className="data-unavailable"
+                              title="Unable to fetch share price. Please recheck stock details and ensure it is correct">N/A
+                            </span>)
+                        }
+                      </td>
+                      <td>
+                        {investmentLoading 
+                          ? (<span className="loading-investment">Loading...</span>) 
+                          : stock.investmentAction 
+                          ? (<span className="investment-action">{stock.investmentAction.toUpperCase()}</span>) 
+                          : (<span 
+                              className="data-unavailable"
+                              title="No investment action available for this stock. Please update the Financial Page">N/A
+                            </span>)
+                        }
+                      </td>
+                      <td>
+                        <div className="stocks-list-act-btn">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent row click
+                              handleEdit(stock);
+                            }}
+                            className="btn-icon btn-edit"
+                            title="Edit Stock"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent row click
+                              handleDelete(stock.id!);
+                            }}
+                            className="btn-icon btn-delete"
+                            title="Delete Stock"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

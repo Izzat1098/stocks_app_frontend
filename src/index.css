@@ -96,7 +96,7 @@ section {
 
 .section-separator {
   width: clamp(300px, 90vw, 1296px);
-  margin: clamp(0.5rem, 2vw, 1rem) auto;
+  margin: clamp(2rem, 2vw, 3rem) auto;
 }
 
 hr {
@@ -476,14 +476,15 @@ div.features p {
 
 .stocks-list-container {
   margin: 2rem auto;
-  overflow-x: scroll;
+  width: 100%;
+  /* overflow-x: scroll !important; */
   /* border-top: solid 1px var(--color-3);
   border-bottom: solid 1px var(--color-3); */
   box-shadow: none;
 }
 @media (min-width: 1024px) {
   .stocks-list-container {
-    overflow-x: auto;
+    /* overflow-x: auto; */
     /* border-radius: 1rem;
     border: solid 1px var(--color-3); */
     /* box-shadow: none; */
@@ -499,7 +500,7 @@ div.features p {
 
 .stocks-list-header h1 {
   color: var(--color-2);
-  align-self: flex-end;
+  align-self: center;
   font-size: clamp(2.6rem, 2vw, 3.6rem);
   line-height: clamp(2.6rem, 2vw, 3.6rem);
 }
@@ -508,6 +509,10 @@ div.features p {
   font-size: 1.4rem;
   padding: 1rem;
   
+}
+
+.stocks-list-table-container {
+  overflow-x: auto;
 }
 
 .stocks-list-table {
@@ -633,6 +638,7 @@ div.features p {
   display: flex;
   justify-content: center;
   margin: clamp(1rem, 2vw, 3rem) auto 1rem auto;
+  gap: 1rem;
 }
 
 .add-stock-form-btn button {
@@ -653,8 +659,6 @@ div.features p {
 
 .financial-stock-selector {
   margin: 3rem auto;
-  /* display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); */
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -671,7 +675,6 @@ div.features p {
 .financial-stock-selector select option {
   font-size: clamp(1.4rem, 2vw, 1.6rem);
   color: var(--color-2);
-  /* width: calc(100% - 2rem); */
   outline: none;
   border: 1px solid var(--color-4);
   border-radius: 4px;
@@ -717,7 +720,6 @@ div.features p {
   margin: clamp(0, 1vw, 1rem) auto;
   padding: 0 1rem;
   height: clamp(400px, 50vh, 600px);
-  /* width: clamp(300px, 85vw, 95%); */
   width: 100%;
   max-width: 100%;
   overflow: hidden;
@@ -1048,7 +1050,6 @@ div.features p {
 }
 
 .financial-ai-table-container {
-  /* margin: 1rem; */
   width: 100%;
 }
 @media (min-width: 1024px) {
@@ -1072,7 +1073,6 @@ div.features p {
 .financial-ai-table {
   width: 100%;
   border-collapse: collapse;
-  /* table-layout: fixed; */
 }
 
 .financial-ai-table thead tr {
@@ -1132,7 +1132,7 @@ div.features p {
 }
 
 .financial-ai-response-button {
-  float: inline-end;;
+  float: inline-end;
   margin-top: 0px;
   margin-right: 0px;
   margin-bottom: 0px;
@@ -1162,22 +1162,194 @@ div.features p {
 }
 
 
+/* MODAL */
+
+.modal-overlay-active {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-overlay-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalAppear 0.3s ease-out;
+}
+
+.modal-small {max-width: 400px;}
+.modal-medium {max-width: 600px;}
+.modal-large {max-width: 800px;}
+
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #e9ecef;
+  background-color: var(--color-9);
+}
+.modal-overlay-header h2 {
+  font-size: clamp(1.4rem, 4vw, 1.9rem);
+  font-weight: bold;
+}
+
+.modal-overlay-close-btn {
+  background: none;
+  border: none;
+  font-size: 25px;
+  cursor: pointer;
+  color: darkslategray;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.modal-overlay-close-btn:hover {
+  background-color: lightgray;
+}
+
+.modal-overlay-body {
+  overflow-y: auto;
+}
+
+.modal-overlay-footer {
+  padding-top: 1rem;
+  padding-left: clamp(1rem, 3vw, 2rem);
+  padding-right: clamp(1rem, 3vw, 2rem);
+  padding-bottom: clamp(1rem, 3vw, 2rem);
+}
+
+.modal-stocks-details-items {
+  margin: clamp(1rem, 2vw, 2rem);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.modal-stock-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.modal-stock-detail label {
+  font-size: clamp(1.3rem, 3vw, 1.6rem);
+  font-weight: bold;
+  color: var(--color-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.modal-stock-detail span {
+  font-size: clamp(1.3rem, 3vw, 1.6rem);
+  color: dimgray;
+  padding: 1rem;
+  background-color: var(--color-10);
+  border-radius: 6px;
+}
+.modal-stock-detail.full-width {
+  grid-column: 1 / -1;
+}
+
+.modal-stock-detail-ai-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.link-btn-modal-stock-ai {
+  width: max-content;
+  min-height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: clamp(1.3rem, 2vw, 1.6rem) !important;
+  padding: clamp(0.2rem, 1vw, 0.5rem) clamp(1rem, 2vw, 2rem) !important;
+  border-radius: 4px !important;
+  gap: 0.2rem;
+}
+
+.modal-stock-footer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  justify-items: stretch;
+  align-items: stretch;
+}
+
+.modal-btn {
+  width: 100%;
+  height: 100%;
+  min-height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: clamp(1.3rem, 2vw, 1.6rem);
+  padding: clamp(0.2rem, 1vw, 0.5rem) clamp(1rem, 2vw, 2rem);
+  border-radius: 4px;
+  gap: 0.2rem;
+
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: var(--color-3);
+  color: white;
+}
+.modal-btn:hover {
+  background-color: var(--color-5);
+  color: black
+}
+
+.modal-btn-red {
+  background-color: crimson !important;
+}
+.modal-btn-red:hover {
+  background-color: lightcoral !important;
+  color: black !important;
+}
+.modal-btn-red:disabled {
+  cursor: not-allowed;
+}
+
+.modal-btn-gray {
+  background-color: gray !important;
+}
+.modal-btn-gray:hover {
+  background-color: silver !important;
+  color: black !important;
+}
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+/* TODO: below css selectors to be verified and if not needed, to delete */
 
 
 
@@ -1532,96 +1704,6 @@ code {
   }
 }
 
-/* Modal styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  backdrop-filter: blur(3px);
-}
-
-.modal-content {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
-  width: 90%;
-  max-height: 90vh;
-  overflow: hidden;
-  animation: modalAppear 0.3s ease-out;
-}
-
-/* Modal size variants */
-.modal-small {
-  max-width: 400px;
-}
-
-.modal-medium {
-  max-width: 600px;
-}
-
-.modal-large {
-  max-width: 800px;
-}
-
-@keyframes modalAppear {
-  from {
-    opacity: 0;
-    transform: scale(0.9) translateY(-30px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 25px;
-  border-bottom: 1px solid #e9ecef;
-  background-color: #f8f9fa;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-  color: #333;
-}
-
-.modal-close-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #666;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.modal-close-btn:hover {
-  background-color: rgba(0, 0, 0, 0.1);
-  color: #333;
-}
-
-.modal-body {
-  padding: 25px;
-  max-height: 60vh;
-  overflow-y: auto;
-}
 
 .stock-details-grid {
   display: grid;
@@ -1673,30 +1755,6 @@ code {
   background-color: #f8f9fa;
 }
 
-/* Mobile responsiveness for modal */
-@media (max-width: 768px) {
-  .modal-content {
-    width: 95%;
-    margin: 20px;
-  }
-  
-  .stock-details-grid {
-    grid-template-columns: 1fr;
-    gap: 15px;
-  }
-  
-  .modal-footer {
-    flex-direction: column-reverse;
-  }
-  
-  .modal-footer .btn {
-    width: 100%;
-  }
-  
-  .modal-header h2 {
-    font-size: 1.25rem;
-  }
-}
 
 /* Stock Price Styles */
 .stock-price {
