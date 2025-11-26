@@ -149,6 +149,15 @@ export const investmentSummaryFields: InvestmentSummaryField[] = [
       { value: 'asset_play', label: 'Asset Play: Have huge hidden assets' },
       { value: 'dead_stock', label: 'DEAD Stock: Static or downward NP trend' },
     ],
+      optionStyles: {
+      'slow_grower': { backgroundColor: '#d1ecf1', color: '#0c5460' },
+      'stalwart': { backgroundColor: '#d4edda', color: '#155724' },
+      'baggers': { backgroundColor: '#d4edda', color: '#155724' },
+      'cyclicals': { backgroundColor: '#fff3cd', color: '#856404' },
+      'turnaround': { backgroundColor: '#fff3cd', color: '#856404' },
+      'asset_play': { backgroundColor: '#fff3cd', color: '#856404' },
+      'dead_stock': { backgroundColor: '#f8d7da', color: '#721c24' },
+    },
   },
   {
     key: 'invest',
@@ -179,12 +188,10 @@ export const investmentSummaryFields: InvestmentSummaryField[] = [
 
 const thousandsFormatter = (value: number | null): string => {
   if (value === null) return '-';
-  console.log(`Formatting value with thousandsFormatter: ${value}`);
   const formattedValue = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value);
-  console.log(`Formatted value with thousandsFormatter: ${formattedValue}`);
   return formattedValue;
 }
 

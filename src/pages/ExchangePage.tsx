@@ -181,157 +181,167 @@ const ExchangePage: React.FC = () => {
 
   return (
     <div className="container">
-      <h1>Stock Exchanges</h1>
-
       {/* Exchanges List */}
-      <div className="card">
-        <h2>Stock Exchanges List</h2>
-        
-        {loading && (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            Loading exchanges...
+      <div className="section-container">
+        <div className="exchanges-list-container stocks-list-container">
+          <div className="exchanges-list-header stocks-list-header">
+            <h1>Exchanges</h1>
           </div>
-        )}
+          
+          {loading && (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              Loading exchanges...
+            </div>
+          )}
 
-        {error && !loading && (
-          <div className="error" style={{ textAlign: 'center', padding: '2rem' }}>
-            {error}
-            <br />
-            <button 
-              onClick={fetchExchanges} 
-              className="btn btn-primary" 
-              style={{ marginTop: '1rem' }}
-            >
-              Retry
-            </button>
-          </div>
-        )}
+          {error && !loading && (
+            <div className="error" style={{ textAlign: 'center', padding: '2rem' }}>
+              {error}
+              <br />
+              <button 
+                onClick={fetchExchanges} 
+                className="link-btn btn-primary"
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
-        {!loading && !error && exchanges.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            No exchanges found. Add some exchanges using the form below.
-          </div>
-        )}
+          {!loading && !error && exchanges.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              No exchanges found. Add some exchanges using the form below.
+            </div>
+          )}
 
-        {!loading && !error && exchanges.length > 0 && (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Exchange Name</th>
-                <th>Abbreviation</th>
-                <th>Country</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {exchanges.map((exchange) => (
-                <tr key={exchange.id || `${exchange.abbreviation}-${exchange.country}`}>
-                  <td>{exchange.name}</td>
-                  <td><strong>{exchange.abbreviation}</strong></td>
-                  <td>{exchange.country}</td>
-                  <td>
-                    <div className="action-buttons">
-                      <button
-                        onClick={() => handleEdit(exchange)}
-                        className="btn-icon btn-edit"
-                        title="Edit Exchange"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        onClick={() => handleDelete(exchange.id!)}
-                        className="btn-icon btn-delete"
-                        title="Delete Exchange"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  </td>
+          {!loading && !error && exchanges.length > 0 && (
+            <table className="exchanges-list-table stocks-list-table">
+              <thead>
+                <tr>
+                  <th>Exchange Name</th>
+                  <th>Abbreviation</th>
+                  <th>Country</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              </thead>
+              <tbody>
+                {exchanges.map((exchange) => (
+                  <tr className="clickable-row" key={exchange.id || `${exchange.abbreviation}-${exchange.country}`}>
+                    <td>{exchange.name}</td>
+                    <td><strong>{exchange.abbreviation}</strong></td>
+                    <td>{exchange.country}</td>
+                    <td>
+                      <div className="exchanges-list-act-btn stocks-list-act-btn">
+                        <button
+                          onClick={() => handleEdit(exchange)}
+                          className="btn-icon btn-edit"
+                          title="Edit Exchange"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleDelete(exchange.id!)}
+                          className="btn-icon btn-delete"
+                          title="Delete Exchange"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      <div className="section-separator">
+        <hr />
       </div>
 
       {/* Add New Exchange Form */}
-      <div className="card">
-        <h2 className="card-header">
-          {isEditing ? 'Edit Stock Exchange' : 'Add New Stock Exchange'}
-        </h2>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="name">Exchange Name</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              disabled={submitting}
-              placeholder="e.g., New York Stock Exchange"
-            />
-          </div>
+      <div className="section-container">
+        <div className="add-exchange-container add-stock-container">
+          <h1>
+            {isEditing ? 'Edit Stock Exchange' : 'Add New Stock Exchange'}
+          </h1>
+          
+          <div className="add-exchange-form add-stock-form">
+            <form onSubmit={handleSubmit}>
+              <div className="add-exchange-form-items add-stock-form-items">
+                <div className="add-exchange-form-item add-stock-form-item">
+                  <label htmlFor="name">Exchange Name</label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    disabled={submitting}
+                    placeholder="e.g., New York Stock Exchange"
+                  />
+                </div>
 
-          <div className="form-group">
-            <label htmlFor="abbreviation">Abbreviation</label>
-            <input
-              type="text"
-              id="abbreviation"
-              name="abbreviation"
-              value={formData.abbreviation}
-              onChange={handleChange}
-              required
-              disabled={submitting}
-              placeholder="e.g., NYSE"
-              maxLength={10}
-            />
-          </div>
+                <div className="add-exchange-form-item add-stock-form-item">
+                  <label htmlFor="abbreviation">Abbreviation</label>
+                  <input
+                    type="text"
+                    id="abbreviation"
+                    name="abbreviation"
+                    value={formData.abbreviation}
+                    onChange={handleChange}
+                    required
+                    disabled={submitting}
+                    placeholder="e.g., NYSE"
+                    maxLength={10}
+                  />
+                </div>
 
-          <div className="form-group">
-            <label htmlFor="country">Country</label>
-            <input
-              type="text"
-              id="country"
-              name="country"
-              value={formData.country}
-              onChange={handleChange}
-              required
-              disabled={submitting}
-              placeholder="e.g., United States"
-            />
-          </div>
+                <div className="add-exchange-form-item add-stock-form-item">
+                  <label htmlFor="country">Country</label>
+                  <input
+                    type="text"
+                    id="country"
+                    name="country"
+                    value={formData.country}
+                    onChange={handleChange}
+                    required
+                    disabled={submitting}
+                    placeholder="e.g., United States"
+                  />
+                </div>
+              </div>
 
-          {errorForm && <div className="error">{errorForm}</div>}
-          {successMessage && <div className="success">{successMessage}</div>}
+              {errorForm && <div className="error">{errorForm}</div>}
+              {successMessage && <div className="success">{successMessage}</div>}
 
-          <div className="form-buttons" style={{ marginTop: '1rem' }}>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={submitting}
-            >
-              {submitting 
-                ? (isEditing ? 'Updating...' : 'Adding...') 
-                : (isEditing ? 'Update Exchange' : 'Add Exchange')
-              }
-            </button>
-            
-            {isEditing && (
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="btn btn-secondary"
-                disabled={submitting}
-                style={{ marginLeft: '10px' }}
-              >
-                Cancel
-              </button>
-            )}
+              <div className="add-exchange-form-btn add-stock-form-btn">
+                <button
+                  type="submit"
+                  className="link-btn"
+                  disabled={submitting}
+                >
+                  {submitting 
+                    ? (isEditing ? 'Updating...' : 'Adding...') 
+                    : (isEditing ? 'Update Exchange' : 'Add Exchange')
+                  }
+                </button>
+                
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="link-btn"
+                    disabled={submitting}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
 
       {/* Delete Confirmation Dialog */}

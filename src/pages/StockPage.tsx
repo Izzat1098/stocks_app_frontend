@@ -338,7 +338,7 @@ const StockPage: React.FC = () => {
       <div className="section-container">
         <div className="stocks-list-container">
           <div className="stocks-list-header">
-            <h1>Stocks List</h1>
+            <h1>Stocks</h1>
             {stocks.length > 0 && (
               <button 
                 onClick={fetchAllStockPrices}
@@ -454,16 +454,17 @@ const StockPage: React.FC = () => {
         </div>
       </div>
 
+      <hr />
 
-      {/* Add New Exchange Form */}
+      {/* Add New Stock Form */}
       <div className="section-container">
-        <div className="add-stock-container">
+        <div className="add-stock-container stocks-list-container">
           <h1>
             {isEditing ? 'Edit Stock' : 'Add New Stock'}
           </h1>
           
           <div className="add-stock-form">
-            <form className="add-stock-form-items2" onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit}>
               <div className="add-stock-form-items">
                 <div className="add-stock-form-item">
                   <label htmlFor="company_name">Company Name</label>
@@ -602,9 +603,8 @@ const StockPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleCancelEdit}
-                    className="link-btn link-btn-secondary"
+                    className="link-btn"
                     disabled={submitting}
-                    style={{ marginLeft: '10px' }}
                   >
                     Cancel
                   </button>

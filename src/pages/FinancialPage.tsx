@@ -235,6 +235,30 @@ const FinancialPage: React.FC = () => {
     }).format(value);
   };
 
+  // Format short number with K, M, B suffixes
+  const formatShortNumber = (value: number, decimals = 0): string => {
+    if (value === null || value === undefined) return '';
+
+    const absValue = Math.abs(value);
+    let formattedValue = '';
+    let suffix = '';
+
+    if (absValue >= 1_000_000_000) {
+      formattedValue = (value / 1_000_000_000).toFixed(decimals);
+      suffix = 'B';
+    } else if (absValue >= 1_000_000) {
+      formattedValue = (value / 1_000_000).toFixed(decimals);
+      suffix = 'M';
+    } else if (absValue >= 1_000) {
+      formattedValue = (value / 1_000).toFixed(decimals);
+      suffix = 'K';
+    } else {
+      formattedValue = value.toFixed(decimals);
+    }
+
+    return `${formattedValue}${suffix}`;
+  };
+
   // Parse formatted number back to number
   const parseFormattedNumber = (value: string): number => {
     // Remove currency codes, symbols, and unwanted characters
@@ -322,6 +346,9 @@ const FinancialPage: React.FC = () => {
 
           // update states
           setFinancialData(data.data);
+          console.log('financialData fetched:', data.data);
+          console.log('type of financialData:', typeof(financialData));
+          console.log('financialData : ', financialData);
           setFinancialDataCalculated(calculatedMetrics);
           setFinancialDataAll(mergedData);
           setOriginalFinancialData(JSON.parse(JSON.stringify(data.data))); // Deep copy
@@ -330,6 +357,10 @@ const FinancialPage: React.FC = () => {
           setYears(fetchedYears);
           setHasUnsavedChanges(false);
           setErrorForm('');
+        } else {
+          console.log('No financial data found for this stock, starting fresh');
+          console.log('type of financialData:', typeof(financialData));
+          console.log('financialData : ', financialData);
         }
 
       } catch (error: any) {
@@ -878,42 +909,42 @@ const FinancialPage: React.FC = () => {
       {
         label: 'Share Price ($)',
         data: years.map(year => financialData[year]?.share_price_at_report_date || 0),
-        borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        borderColor: 'darkolivegreen',
+        backgroundColor: 'darkolivegreen',
         yAxisID: 'y',
-        borderWidth: 3,
-        pointStyle: 'triangle',
-        pointRadius: 6,
+        borderWidth: 2,
+        pointStyle: 'circle',
+        pointRadius: 3,
       },
       {
         label: 'Earnings Per Share ($)',
         data: years.map(year => financialData[year]?.earnings_per_share || 0),
-        borderColor: 'rgb(255, 99, 132)',
-        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+        borderColor: 'deeppink',
+        backgroundColor: 'deeppink',
         yAxisID: 'y',
-        borderWidth: 3,
-        pointStyle: 'triangle',
-        pointRadius: 6,
+        borderWidth: 2,
+        pointStyle: 'circle',
+        pointRadius: 3,
       },
       {
         label: 'Revenue ($)',
         data: years.map(year => financialData[year]?.revenue || 0),
-        borderColor: 'rgb(54, 162, 235)',
-        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+        borderColor: 'dodgerblue',
+        backgroundColor: 'dodgerblue',
         yAxisID: 'y1',
-        borderWidth: 3,
-        pointStyle: 'rect',
-        pointRadius: 6,
+        borderWidth: 2,
+        pointStyle: 'circle',
+        pointRadius: 3,
       },
       {
         label: 'Earnings ($)',
         data: years.map(year => financialData[year]?.profit_after_tax_for_shareholders || 0),
-        borderColor: 'rgb(255, 206, 86)',
-        backgroundColor: 'rgba(255, 206, 86, 0.2)',
+        borderColor: 'goldenrod',
+        backgroundColor: 'goldenrod',
         yAxisID: 'y1',
-        borderWidth: 3,
-        pointStyle: 'rect',
-        pointRadius: 6,
+        borderWidth: 2,
+        pointStyle: 'circle',
+        pointRadius: 3,
       },
     ],
   };
@@ -928,17 +959,19 @@ const FinancialPage: React.FC = () => {
     plugins: {
       title: {
         display: true,
-        text: 'Annual Financial Results',
+        text: `Financial Results for ${selectedStock ? selectedStock.company_name : ''}`,
+        color: 'black',
         font: {
           size: 16,
-          weight: 'bold' as const,
+          weight: 'normal' as const,
+          family: 'Roboto',
         },
       },
       legend: {
         position: 'top' as const,
         labels: {
           usePointStyle: true,
-          padding: 20,
+          padding: 5,
         },
       },
       tooltip: {
@@ -963,14 +996,19 @@ const FinancialPage: React.FC = () => {
         title: {
           display: true,
           text: 'Financial Year End',
+          color: 'black',
           font: {
             size: 14,
-            weight: 'bold' as const,
+            weight: 'normal' as const,
+            family: 'Roboto',
           },
         },
         grid: {
-          color: 'rgba(0, 0, 0, 0.1)',
+          color: 'lightgray',
         },
+        ticks: {
+          color: 'darkslategray',
+        }
       },
       y: {
         type: 'linear' as const,
@@ -982,15 +1020,17 @@ const FinancialPage: React.FC = () => {
           text: 'Share Price & EPS ($)',
           font: {
             size: 14,
-            weight: 'bold' as const,
+            weight: 'normal' as const,
+            family: 'Roboto',
           },
-          color: 'rgb(75, 192, 192)',
+          color: 'darkolivegreen',
         },
         ticks: {
           callback: (value: any) => `$${formatNumber(value, 2)}`,
+          color: 'darkslategray',
         },
         grid: {
-          color: 'rgba(75, 192, 192, 0.2)',
+          color: 'rgba(0, 0, 0, 0.1)',
         },
         suggestedMax: Math.max(
           ...years.map(year => Math.max(
@@ -1009,16 +1049,18 @@ const FinancialPage: React.FC = () => {
           text: 'Revenue & Earnings ($)',
           font: {
             size: 14,
-            weight: 'bold' as const,
+            weight: 'normal' as const,
+            family: 'Roboto',
           },
-          color: 'rgb(54, 162, 235)',
+          color: 'dodgerblue',
         },
         ticks: {
-          callback: (value: any) => `$${formatNumber(value, 0)}`,
+          callback: (value: any) => `$${formatShortNumber(value, 0)}`,
+          color: 'darkslategray',
         },
         grid: {
           drawOnChartArea: false,
-          color: 'rgba(54, 162, 235, 0.2)',
+          color: 'rgba(0, 0, 0, 0.1)',
         },
         suggestedMax: Math.max(
           ...years.map(year => Math.max(
@@ -1032,16 +1074,18 @@ const FinancialPage: React.FC = () => {
 
   return (
     <div className="container">
-      <h1>Financial Data Management</h1>
 
       {/* Stock Selection */}
-      <div className="card">
-        <div className="stock-selector-section">
-          <h2>Select Stock</h2>
+      <div className="section-container">
+        <div className="financial-stock-selector">
+          <h3>Financial Data for: </h3>
+
           {loading ? (
-            <div>Loading stocks...</div>
+            <div style={{ margin: '2rem 1rem 3rem 1rem', textAlign: 'center' }}>
+              <h5>Loading stocks...</h5>
+            </div>
           ) : (
-            <div className="stock-selector">
+            <div>
               <select
                 value={selectedStockId || ''}
                 onChange={(e) => handleStockChange(Number(e.target.value))}
@@ -1050,544 +1094,667 @@ const FinancialPage: React.FC = () => {
                 <option value="">Select a stock...</option>
                 {stocks.map(stock => (
                   <option key={stock.id} value={stock.id}>
-                    {stock.ticker} - {stock.company_name}
+                    {stock.ticker} - {stock.company_name} | {stock.sector} | {stock.country}
                   </option>
                 ))}
               </select>
-              {selectedStock && (
+              {/* {selectedStock && (
                 <div className="selected-stock-info">
                   <strong>{selectedStock.ticker}</strong> | {selectedStock.company_name}
                   <br />
                   <small>{selectedStock.sector} • {selectedStock.country}</small>
                 </div>
-              )}
+              )} */}
             </div>
           )}
         </div>
       </div>
+
+      {selectedStock && (
+        <div className="section-separator">
+          <hr />
+        </div>
+      )}
+
+
+      {/* No stock selected */}
+      {!selectedStock && (
+        <div style={{ margin: '0 1rem 3rem 1rem', textAlign: 'center' }}>
+          <h5>Please select a stock to view financial data.</h5>
+        </div>
+      )}
+
 
       {/* Charts Section */}
       {selectedStock && (
-        <div className="card">
-          <h2 
-            onClick={() => setShowCharts(!showCharts)}
-            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
-          >
-            <span>{showCharts ? '▼' : '▶'}</span>
-            Financial Data Chart - {selectedStock.ticker} | {selectedStock.company_name}
-          </h2>
-          {showCharts && (
-            <div className="chart-container">
-              <Line data={combinedChartData} options={chartOptions} />
+        <div className="section-container">
+          <div className="financial-chart-container stocks-list-container">
+            <div className="financial-heading-container financial-heading-container-single">
+              <h4 
+                onClick={() => setShowCharts(!showCharts)}
+                className="financial-heading"
+              >
+                <span>{showCharts ? '▼' : '▶'}</span>
+                Financial Data Chart
+              </h4>
             </div>
-          )}
+
+            {showCharts && (
+              <div className="financial-chart">
+                <Line data={combinedChartData} options={chartOptions} />
+              </div>
+            )}
+          </div>
         </div>
       )}
+
+
+      {selectedStock && (
+        <div className="section-separator">
+          <hr />
+        </div>
+      )}
+
+
 
       {/* Investment Summary Section */}
       {selectedStock && (
-        <div className="card">
-          <div className="card-header">
-            <h2 
-              onClick={() => setShowInvestmentSummary(!showInvestmentSummary)}
-              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
-            >
-              <span>{showInvestmentSummary ? '▼' : '▶'}</span>
-              Investment Summary - {selectedStock.ticker} | {selectedStock.company_name}
-            </h2>
-            <div className="year-controls">
-              <button 
-                onClick={handleSaveInvestmentSummary}
-                className="btn btn-save"
-                disabled={!hasUnsavedSummaryChanges}
-                title={hasUnsavedSummaryChanges ? "Save investment summary to database" : "No changes to save"}
+        <div className="section-container">
+          <div className="financial-investment-container stocks-list-container">
+            <div className="financial-heading-container">
+              <h4 
+                onClick={() => setShowInvestmentSummary(!showInvestmentSummary)}
+                className="financial-heading"
               >
-                {hasUnsavedSummaryChanges ? '💾 Save Summary' : '✓ Summary Saved'}
-              </button>
+                <span>{showInvestmentSummary ? '▼' : '▶'}</span>
+                Investment Summary
+              </h4>
+
+              {showInvestmentSummary && (
+                  <button 
+                    onClick={handleSaveInvestmentSummary}
+                    className="link-btn link-btn-financial"
+                    disabled={!hasUnsavedSummaryChanges}
+                    title={hasUnsavedSummaryChanges ? "Save investment summary to database" : "No changes to save"}
+                  >
+                    {hasUnsavedSummaryChanges 
+                      ? <><span>💾</span>Save Summary</> 
+                      : <><span>✅</span>Summary Saved</>
+                      }
+                  </button>
+              )}
             </div>
-          </div>
 
-          {showInvestmentSummary && (
-            <div className="investment-summary-form">
-            {investmentSummaryFields.map((field, index) => {
+            {showInvestmentSummary && (
+              <div className="financial-investment-items">
+              {investmentSummaryFields.map((field, index) => {
 
-              if (field.type === 'calculated') {
-                const calculatedValues = investmentSummaryCalculated[field.key as keyof InvestmentSummaryCalculated];
-                console.log(`Calculated2 field values for ${field.key}:`, calculatedValues);
+                if (field.type === 'calculated') {
+                  const calculatedValues = investmentSummaryCalculated[field.key as keyof InvestmentSummaryCalculated];
 
-                const nDisplayValues = calculatedValues?.length;
-                if ((nDisplayValues ?? 0) > 2) {
-                  console.error('Calculated field returns more than 2 values, which is not supported:', field);
-                }
+                  const nDisplayValues = calculatedValues?.length;
+                  if ((nDisplayValues ?? 0) > 2) {
+                    console.error('Calculated field returns more than 2 values, which is not supported:', field);
+                  }
 
-                const displayValues = [];
+                  const displayValues = [];
 
-                if (calculatedValues?.[0] && field.format_primary) {
-                  displayValues[0] = field.format_primary(calculatedValues[0]);
-                } else {
-                  displayValues[0] = calculatedValues?.[0] || '-';
-                }
+                  if (calculatedValues?.[0] && field.format_primary) {
+                    displayValues[0] = field.format_primary(calculatedValues[0]);
+                  } else {
+                    displayValues[0] = calculatedValues?.[0] || '-';
+                  }
 
-                if (calculatedValues?.[1] && field.format_secondary) {
-                  displayValues[1] = field.format_secondary(calculatedValues[1]);
-                } else {
-                  displayValues[1] = calculatedValues?.[1] || '-';
-                }
+                  if (calculatedValues?.[1] && field.format_secondary) {
+                    displayValues[1] = field.format_secondary(calculatedValues[1]);
+                  } else {
+                    displayValues[1] = calculatedValues?.[1] || '-';
+                  }
 
-                const columnCount = (nDisplayValues ?? 1) + 1;
-                const gridTemplate = columnCount === 2 
-                  ? '3fr 3fr'
-                  : '4fr 2fr 2fr'
+                  const columnCount = (nDisplayValues ?? 1) + 1;
+                  const gridTemplate = columnCount === 2 
+                    ? '3fr 3fr'
+                    : '4fr 2fr 2fr'
 
-                const secondaryLabel = displayValues?.[1] !== '-' 
-                  ? field?.secondary_label || ''
-                  : '';
+                  const secondaryLabel = displayValues?.[1] !== '-' 
+                    ? field?.secondary_label || ''
+                    : '';
 
-                return (
-                  <div key={`${field.key}-${index}`} 
-                    className="form-row calculated-row" 
-                    style={{ gridTemplateColumns: gridTemplate }}>
-                    <label className="form-label" title={field.title}>{field.label}</label>
-                    <div key={`${field.key}-${index}-1`} className="calculated-value-large">{displayValues[0]}</div>
-                    { (nDisplayValues ?? 0) > 1 && (
-                      <div key={`${field.key}-${index}-2`} className="calculated-value-large">{displayValues[1]}</div>
-                    )}
-                  </div>
-                );
-
-              } else if (field.type === 'input') {
-                return (
-                  <div key={field.key} className="form-row">
-                    <label className="form-label" title={field.title}>{field.label}</label>
-                    <input
-                      type={field.inputType}
-                      step={field.step}
-                      value={(() => {
-                        if (investInputValues[field.key] !== undefined) {
-                          return investInputValues[field.key];
-                        }
-                        const fieldKey = field.key as keyof InvestmentSummary;
-                        return investmentSummary?.[fieldKey]
-                          ? formatNumber(investmentSummary[fieldKey] as number, field.decimals || 0)
-                          : '';
-                        }
-                      )()}
-                      onChange={(e) => {
-                        console.log('Investmentsummary: ', investmentSummary);
-                        setInvestInputValues(prev => ({
-                          ...prev,
-                          [field.key]: e.target.value
-                        }));
-                      }}
-                      onBlur={(e) => {
-                        const rawValue = investInputValues[field.key];
-                        if (rawValue !== undefined) {
-                          const numericValue = parseFormattedNumber(rawValue);
-                          updateInvestmentSummary(field.key as keyof InvestmentSummary, numericValue);
-
-                          setInvestInputValues(prev => {
-                            const updated = { ...prev };
-                            delete updated[field.key];
-                            return updated;
-                          });
-                        }
-                      }}
-                      onPaste={(e) =>
-                        handlePasteInvestmentSummary(e, field.key as keyof InvestmentSummary)}
-                      className="form-input"
-                      placeholder={field.placeholder}
-                    />
-                  </div>
-                );
-
-              } else if (field.type === 'date') {
-                return (
-                    <div key={field.key} className="form-row">
-                    <label className="form-label" title={field.title}>{field.label}</label>
-                    <input
-                      type={field.inputType}
-                      value={(() => {
-                      const inputValue = investmentSummary[field.key as keyof InvestmentSummary] as string;
-                      return inputValue
-                        ? inputValue
-                        : '';
-                      })()}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        updateInvestmentSummary(field.key as keyof InvestmentSummary, value);
-                      }}
-                      className="form-input"
-                      placeholder={new Date().toISOString().split('T')[0]}
-                    />
-                    </div>
-                );
-
-              } else if (field.type === 'select' && field.options) {
-                return (
-                  <div key={field.key} className="form-row">
-                    <label className="form-label" title={field.title}>{field.label}</label>
-                    <select
-                      value={investmentSummary[field.key as keyof InvestmentSummary] || ''}
-                      id={`select-${field.key}`}
-                      onChange={(e) => {
-                        updateSelectStyle(field.key as keyof InvestmentSummary, index, `select-${field.key}`);
-                        updateInvestmentSummary(field.key as keyof InvestmentSummary, e.target.value);
-                      }}
-                      onFocus={(e) => {updateSelectStyle(field.key as keyof InvestmentSummary, index, `select-${field.key}`, true)}}
-                      onBlur={(e) => {updateSelectStyle(field.key as keyof InvestmentSummary, index, `select-${field.key}`)}}
-                      className="form-input"
+                  return (
+                    <div key={`${field.key}-${index}`} 
+                      className="financial-investment-item" 
+                      style={{ gridTemplateColumns: gridTemplate }}
                     >
-                      {field.options.map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                );
+                      <label 
+                        title={field.title}>{field.label}
+                      </label>
+                      <div 
+                        key={`${field.key}-${index}-1`} 
+                        className="financial-investment-item-value financial-investment-item-calcValue"
+                      >
+                        {displayValues[0]}
+                      </div>
 
-              } else if (field.type === 'textarea') {
-                return (
-                  <div key={field.key} className="form-row">
-                    <label className="form-label" title={field.title}>{field.label}</label>
-                    <textarea
-                      value={investmentSummary[field.key as keyof InvestmentSummary] || ''}
-                      onChange={(e) => 
-                        updateInvestmentSummary(field.key as keyof InvestmentSummary, e.target.value)}
-                      className="form-input form-textarea"
-                      placeholder={field.placeholder}
-                      rows={field.rows}
-                    />
-                  </div>
-                );
-              }
+                      { (nDisplayValues ?? 0) > 1 && (
+                        <div key={`${field.key}-${index}-2`} className="financial-investment-item-value financial-investment-item-calcValue">{displayValues[1]}</div>
+                      )}
 
-              return null;
-            })}
+                    </div>
+                  );
+
+                } else if (field.type === 'input') {
+                  return (
+                    <div key={field.key} className="financial-investment-item">
+                      <label 
+                        title={field.title}
+                      >
+                        {field.label}
+                      </label>
+                      <input
+                        type={field.inputType}
+                        step={field.step}
+                        value={(() => {
+                          if (investInputValues[field.key] !== undefined) {
+                            return investInputValues[field.key];
+                          }
+                          const fieldKey = field.key as keyof InvestmentSummary;
+                          return investmentSummary?.[fieldKey]
+                            ? formatNumber(investmentSummary[fieldKey] as number, field.decimals || 0)
+                            : '';
+                          }
+                        )()}
+                        onChange={(e) => {
+                          console.log('Investmentsummary: ', investmentSummary);
+                          setInvestInputValues(prev => ({
+                            ...prev,
+                            [field.key]: e.target.value
+                          }));
+                        }}
+                        onBlur={(e) => {
+                          const rawValue = investInputValues[field.key];
+                          if (rawValue !== undefined) {
+                            const numericValue = parseFormattedNumber(rawValue);
+                            updateInvestmentSummary(field.key as keyof InvestmentSummary, numericValue);
+
+                            setInvestInputValues(prev => {
+                              const updated = { ...prev };
+                              delete updated[field.key];
+                              return updated;
+                            });
+                          }
+                        }}
+                        onPaste={(e) =>
+                          handlePasteInvestmentSummary(e, field.key as keyof InvestmentSummary)}
+                        className="financial-investment-item-input"
+                        placeholder={field.placeholder}
+                      />
+                    </div>
+                  );
+
+                } else if (field.type === 'date') {
+                  return (
+                      <div key={field.key} className="financial-investment-item">
+                      <label 
+                        title={field.title}
+                      >
+                        {field.label}
+                      </label>
+                      <input
+                        type={field.inputType}
+                        value={(() => {
+                        const inputValue = investmentSummary[field.key as keyof InvestmentSummary] as string;
+                        return inputValue
+                          ? inputValue
+                          : '';
+                        })()}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          updateInvestmentSummary(field.key as keyof InvestmentSummary, value);
+                        }}
+                        className="financial-investment-item-input"
+                        placeholder={new Date().toISOString().split('T')[0]}
+                      />
+                      </div>
+                  );
+
+                } else if (field.type === 'select' && field.options) {
+                  return (
+                    <div key={field.key} className="financial-investment-item">
+                      <label 
+                        title={field.title}
+                      >
+                        {field.label}
+                      </label>
+                      <select
+                        value={investmentSummary[field.key as keyof InvestmentSummary] || ''}
+                        id={`select-${field.key}`}
+                        onChange={(e) => {
+                          updateSelectStyle(field.key as keyof InvestmentSummary, index, `select-${field.key}`);
+                          updateInvestmentSummary(field.key as keyof InvestmentSummary, e.target.value);
+                        }}
+                        onFocus={(e) => {updateSelectStyle(field.key as keyof InvestmentSummary, index, `select-${field.key}`, true)}}
+                        onBlur={(e) => {updateSelectStyle(field.key as keyof InvestmentSummary, index, `select-${field.key}`)}}
+                        className="financial-investment-item-input"
+                      >
+                        {field.options.map(option => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+
+                } else if (field.type === 'textarea') {
+                  return (
+                    <div key={field.key} className="financial-investment-item">
+                      <label 
+                        title={field.title}
+                      >
+                        {field.label}
+                      </label>
+                      <textarea
+                        value={investmentSummary[field.key as keyof InvestmentSummary] || ''}
+                        onChange={(e) => 
+                          updateInvestmentSummary(field.key as keyof InvestmentSummary, e.target.value)}
+                        className="financial-investment-item-input"
+                        placeholder={field.placeholder}
+                        rows={field.rows}
+                      />
+                    </div>
+                  );
+                }
+                
+                return null;
+              })}
+            </div>
+            )}
           </div>
-          )}
         </div>
       )}
+
+
+      {selectedStock && (
+        <div className="section-separator">
+          <hr />
+        </div>
+      )}
+
 
       {/* Financial Data Input Section */}
       {selectedStock && (
-        <div className="card">
-          <div className="card-header">
-            <h2 
-              onClick={() => setShowFinancialData(!showFinancialData)}
-              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
-            >
-              <span>{showFinancialData ? '▼' : '▶'}</span>
-              Financial Data Input - {selectedStock.ticker} | {selectedStock.company_name}
-            </h2>
-            <div className="year-controls">
-              {errorForm && (
-                <div className="error-left">{errorForm}</div>
-              )}
-              <div className="add-year">
-                <input
-                  type="date"
-                  value={newYear}
-                  onChange={(e) => setNewYear(e.target.value)}
-                  className="form-input"
-                  title="Select financial year end date"
-                />
-                <button onClick={addYear} className="btn btn-primary">
-                  Add Column
-                </button>
-              </div>
-              <button 
-                onClick={handleSave}
-                className="btn btn-save"
-                disabled={!hasUnsavedChanges}
-                title={hasUnsavedChanges ? "Save financial data to database" : "No changes to save"}
+        <div className="section-container">
+          <div className="financial-data-container stocks-list-container">
+            <div className="financial-heading-container">
+              <h4 
+                onClick={() => setShowFinancialData(!showFinancialData)}
+                className="financial-heading"
               >
-                {hasUnsavedChanges ? '💾 Save Data' : '✓ Data Saved'}
-              </button>
+                <span>{showFinancialData ? '▼' : '▶'}</span>
+                Financial Data Input
+              </h4>
             </div>
-          </div>
 
-          {showFinancialData && (
-            <>
-          <div className="paste-instructions">
-            <div className="paste-instructions-header" onClick={() => setShowPasteInstructions(!showPasteInstructions)}>
-              <h4>💡 Paste Instructions</h4>
-              <span className="collapse-icon">
-                {showPasteInstructions ? '▼' : '▶'}
-              </span>
-            </div>
-            {showPasteInstructions && (
-              <ul className="paste-instructions-content">
-                <li><strong>Single Value:</strong> Click on any cell and paste (Ctrl+V)</li>
-                <li><strong>Row Data:</strong> Click on metric label (e.g. Share Price) and paste (Ctrl+V) values for multiple years</li>
-                <li><strong>Column Data:</strong> Click on any cell and paste (Ctrl+V)</li>
-              </ul>
+              {showFinancialData && (
+                <div className="financial-data-controls">
+                  {errorForm && (
+                    <div className="financial-data-err-msg">{errorForm}</div>
+                  )}
+                  <div className="financial-data-add-year">
+                    <input
+                      type="date"
+                      value={newYear}
+                      onChange={(e) => setNewYear(e.target.value)}
+                      className="financial-data-add-year-form"
+                      title="Select financial year end date"
+                    />
+                    <button onClick={addYear} className="link-btn link-btn-financial">
+                      <><span>➕</span>Add Column</>
+                    </button>
+                  </div>
+                  <button 
+                    onClick={handleSave}
+                    className="link-btn link-btn-financial"
+                    disabled={!hasUnsavedChanges}
+                    title={hasUnsavedChanges ? "Save financial data to database" : "No changes to save"}
+                  >
+                    {hasUnsavedChanges 
+                      ? <><span>💾</span>Save Data</> 
+                      : <><span>✅</span>Data Saved</>
+                    }
+                  </button>
+                </div>
+              )}
+            
+            {showFinancialData && (
+              <div className="financial-data-instruction">
+                <div 
+                  className="financial-data-instruction-header" 
+                  onClick={() => setShowPasteInstructions(!showPasteInstructions)}
+                >
+                  <h5>💡 Paste Instructions</h5>
+                  <span className="collapse-icon">
+                    {showPasteInstructions ? '▼' : '▶'}
+                  </span>
+                </div>
+                {showPasteInstructions && (
+                  <ul 
+                    className="financial-data-instruction-content"
+                  >
+                    <li><strong>Single Value:</strong> Click on any cell and paste (Ctrl+V)</li>
+                    <li><strong>Row Data:</strong> Click on metric label (e.g. Share Price) and paste (Ctrl+V) values for multiple years</li>
+                    <li><strong>Column Data:</strong> Click on any cell and paste (Ctrl+V)</li>
+                  </ul>
+                )}
+              </div>
             )}
 
-          </div>
-
-        <div className="financial-table-container">
-          <table className="financial-table">
-            <thead>
-              <tr>
-                <th>Financial Metric</th>
-                {years.map(year => (
-                  <th key={year} className="year-header"
-                      title={`Column data for ${year}`}>
-                    <div className="year-header-content">
-                      {editingYear === year ? (
-                        <input
-                          type="text"
-                          value={tempYearValue}
-                          onChange={(e) => setTempYearValue(e.target.value)}
-                          onBlur={saveYearEdit}
-                          onKeyDown={handleYearKeyPress}
-                          className="year-edit-input"
-                          autoFocus
-                          title="Press Enter to save, Escape to cancel"
-                        />
-                      ) : (
-                        <span 
-                          onClick={() => startEditingYear(year)}
-                          className="year-display"
-                          title="Click to edit year"
+            {showFinancialData && (
+              <div className="financial-data-table">
+                <table className="financial-data-table-input-table">
+                  <thead>
+                    <tr>
+                      <th>Financial Metric</th>
+                      {years.map(year => (
+                        <th 
+                          key={year} 
+                          className="financial-data-table-header"
+                          title={`Column data for ${year}`}
                         >
-                          {year}
-                        </span>
-                      )}
-                      <button
-                        onClick={() => removeYear(year)}
-                        className="btn-icon btn-delete-small"
-                        title={`Remove ${year}`}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {orderedKeysWithSeparators.map(key => {
-                // Handle separatator rows
-                if (key.toLowerCase().includes('separator')) {
-                  return (
-                    <tr key={key} className="separator-row">
-                      <td colSpan={years.length + 1} className="separator-row">
-                        <div className="separator-label">
-                          {key.replace('separator-', '').replace(/_/g, ' ')}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }
-
-                // Find the metric config
-                const metric = metrics.find(m => m.key === key);
-                if (!metric) return null;
-
-                // Check if this is a calculated field (read-only)
-                const isCalculated = years.length > 0 && financialDataCalculated[years[0]] && key in financialDataCalculated[years[0]];
-                // console.log('this is in financialDataCalculated[years[0]]', financialDataCalculated[years[0]]);
-
-                return (
-                  <tr key={metric.key} className={isCalculated ? 'calculated-row' : ''}>
-                    <td className={`metric-label ${isCalculated ? 'calculated-label' : ''}`}
-                        onPaste={(e) => {
-                          const metricKey = metric.key as keyof YearlyFinancials;
-                          handleRowPaste(e, metricKey)}}
-                        title={metric.hoverText 
-                          ? metric.hoverText 
-                          : isCalculated 
-                          ? ''
-                          : `Click here and paste row data for ${metric.label}`}>
-                      {metric.label} {metric.unit === '' ? '' : `(${metric.unit})`}
-                    </td>
-                    {years.map(year => (
-                      // Read-only calculated value
-                      isCalculated ? (
-                        <td key={`${year}-${metric.key}`} className="calculated-cell">
-                          <div className="calculated-value">
-                            {financialDataAll[year]?.[metric.key] 
-                              ? formatNumber(financialDataAll[year]![metric.key]!, metric.decimals || 0)
-                              : '-'
-                            }
+                          <div className="financial-data-table-header-year">
+                            {editingYear === year ? (
+                              <input
+                                type="text"
+                                value={tempYearValue}
+                                onChange={(e) => setTempYearValue(e.target.value)}
+                                onBlur={saveYearEdit}
+                                onKeyDown={handleYearKeyPress}
+                                autoFocus
+                                title="Press Enter to save, Escape to cancel"
+                              />
+                            ) : (
+                              <span 
+                                onClick={() => startEditingYear(year)}
+                                title="Click to edit year"
+                              >
+                                {year}
+                              </span>
+                            )}
+                            <button
+                              onClick={() => removeYear(year)}
+                              className="financial-data-delete-btn"
+                              title={`Remove ${year}`}
+                            >
+                              ✖
+                            </button>
                           </div>
-                        </td>
-                        ) : (
-                          // Editable input
-                        <td key={`${year}-${metric.key}`}>
-                          <input
-                            type="text"
-                            id={`input-${year}-${metric.key}`}
-                            value={(() => {
-                              const inputKey = `${year}-${metric.key}`;
-                              // Show raw value during editing, formatted value otherwise
-                              if (inputValues[inputKey] !== undefined) {
-                                return inputValues[inputKey];
-                              }
-                              const metricKey = metric.key as keyof YearlyFinancials;
-                              return financialData[year]?.[metricKey] 
-                                ? formatNumber(financialData[year]![metricKey]!, metric.decimals || 0)
-                                : '';
-                            })()}
-                            onChange={(e) => {
-                              const metricKey = metric.key as keyof YearlyFinancials;
-                              handleInputChange(year, metricKey, e.target.value)}}
-                            onKeyDown={(e) => {
-                              const metricKey = metric.key as keyof YearlyFinancials;
-                              handleKeyDown(e, year, metricKey)}}
-                            onFocus={() => {
-                              const metricKey = metric.key as keyof YearlyFinancials;
-                              handleInputFocus(year, metricKey)}}
-                            onBlur={() => {
-                              const metricKey = metric.key as keyof YearlyFinancials;
-                              handleInputBlur(year, metricKey)}}
-                            onPaste={(e) => {
-                              const metricKey = metric.key as keyof YearlyFinancials;
-                              handlePaste(e, year, metricKey)}}
-                            className="financial-input"
-                            placeholder={metric.decimals === 2 ? "0.00" : "0"}
-                            title={`Paste ${metric.label} data for ${year}`}
-                          />
-                        </td>
-                      )
-                    ))}
-                  </tr>
-                )
-              })}
-
-              {fieldsForIncreasesCalc.map(fieldKey => {
-                const metric = metrics.find(m => m.key === fieldKey);
-                if (!metric) return null;
-
-                return (
-                  <tr key={`row-${fieldKey}`} className="calculated-row">
-                    <td className="metric-label calculated-label"
-                      title={`CAGR and YOY Increases in ${metric.label}`}
-                      >
-                      {metric.label}
-                    </td>
-                    {years.map(year => {
-                      const increases = financialService.calculatePercentageIncrease(year, years, fieldKey, financialDataAll);
-                      // const increases = calculatePercentageIncrease(year, fieldKey);
-                      let isNegative = false;
-                      let displayValue = '';
-
-                      if (increases == null) {
-                        displayValue = '-';
-                      } else if (typeof increases === 'string' && increases.includes('-')) {
-                        displayValue = increases;
-                        isNegative = true;
-                      } else if (typeof increases === 'string' && !increases.includes('-')) {
-                        displayValue = increases;
-                        isNegative = false;
-                      } else if (typeof increases === 'number' && increases < 0) {
-                        isNegative = true;
-                        displayValue = `${increases.toFixed(1)}%`;
-                      } else if (typeof increases === 'number' && increases > 0) {
-                        displayValue = `${increases.toFixed(1)}%`;
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orderedKeysWithSeparators.map(key => {
+                      // Handle separatator rows
+                      if (key.toLowerCase().includes('separator')) {
+                        return (
+                          <tr 
+                            key={key} 
+                            className="financial-data-table-separator-row"
+                          >
+                            <td 
+                              colSpan={years.length + 1} 
+                              className="financial-data-table-separator-row"
+                            >
+                              <div>
+                                {key.replace('separator-', '').replace(/_/g, ' ')}
+                              </div>
+                            </td>
+                          </tr>
+                        );
                       }
 
+                      // Find the metric config
+                      const metric = metrics.find(m => m.key === key);
+                      if (!metric) return null;
+
+                      // Check if this is a calculated field (read-only)
+                      const isCalculated = years.length > 0 && financialDataCalculated[years[0]] && key in financialDataCalculated[years[0]];
+                      // console.log('this is in financialDataCalculated[years[0]]', financialDataCalculated[years[0]]);
+
                       return (
-                        <td key={`${year}-${fieldKey}-increase`} className="calculated-cell">
-                          <div className={`calculated-value ${isNegative ? 'negative-value' : 'positive-value'}`}>
-                            {displayValue}
-                          </div>
-                        </td>
-                      );
+                        <tr 
+                          key={metric.key} 
+                          className={'financial-data-table-data-row' + (isCalculated ? ' financial-data-table-calculated-row' : ' financial-data-table-input-row')}
+                        >
+                          <td 
+                            className={'financial-data-table-metric-label'}
+                              onPaste={(e) => {
+                                const metricKey = metric.key as keyof YearlyFinancials;
+                                handleRowPaste(e, metricKey)}}
+                              title={metric.hoverText 
+                                ? metric.hoverText 
+                                : isCalculated 
+                                ? ''
+                                : `Click here and paste row data for ${metric.label}`}>
+                            {metric.label} {metric.unit === '' ? '' : `(${metric.unit})`}
+                          </td>
+                          {years.map(year => (
+                            // Read-only calculated value
+                            isCalculated ? (
+                              <td 
+                                key={`${year}-${metric.key}`} 
+                                className="financial-data-table-cell"
+                              >
+                                <div className="financial-data-table-calculated-value">
+                                  {financialDataAll[year]?.[metric.key] 
+                                    ? formatNumber(financialDataAll[year]![metric.key]!, metric.decimals || 0)
+                                    : '-'
+                                  }
+                                </div>
+                              </td>
+                              ) : (
+                                // Editable input
+                              <td 
+                                key={`${year}-${metric.key}`}
+                                className="financial-data-table-cell"
+                              >
+                                <input
+                                  type="text"
+                                  id={`input-${year}-${metric.key}`}
+                                  value={(() => {
+                                    const inputKey = `${year}-${metric.key}`;
+                                    // Show raw value during editing, formatted value otherwise
+                                    if (inputValues[inputKey] !== undefined) {
+                                      return inputValues[inputKey];
+                                    }
+                                    const metricKey = metric.key as keyof YearlyFinancials;
+                                    return financialData[year]?.[metricKey] 
+                                      ? formatNumber(financialData[year]![metricKey]!, metric.decimals || 0)
+                                      : '';
+                                  })()}
+                                  onChange={(e) => {
+                                    const metricKey = metric.key as keyof YearlyFinancials;
+                                    handleInputChange(year, metricKey, e.target.value)}}
+                                  onKeyDown={(e) => {
+                                    const metricKey = metric.key as keyof YearlyFinancials;
+                                    handleKeyDown(e, year, metricKey)}}
+                                  onFocus={() => {
+                                    const metricKey = metric.key as keyof YearlyFinancials;
+                                    handleInputFocus(year, metricKey)}}
+                                  onBlur={() => {
+                                    const metricKey = metric.key as keyof YearlyFinancials;
+                                    handleInputBlur(year, metricKey)}}
+                                  onPaste={(e) => {
+                                    const metricKey = metric.key as keyof YearlyFinancials;
+                                    handlePaste(e, year, metricKey)}}
+                                  className="financial-data-table-input-cell"
+                                  placeholder={metric.decimals === 2 ? "0.00" : "0"}
+                                  title={`Paste ${metric.label} data for ${year}`}
+                                />
+                              </td>
+                            )
+                          ))}
+                        </tr>
+                      )
                     })}
-                  </tr>
-                )
-              })}
 
-            </tbody>
-          </table>
-        </div>
-            </>
-          )}
-      </div>
-      )}
+                    {fieldsForIncreasesCalc.map(fieldKey => {
+                      const metric = metrics.find(m => m.key === fieldKey);
+                      if (!metric) return null;
 
-        {/* AI Queries Section */}
-      <div className="card">
-        <div>
-          <div className="ai-queries-header">
-            <h3 
-              className="ai-queries-title"
-              onClick={() => setShowAiQueries(!showAiQueries)}
-              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
-            >
-              <span>{showAiQueries ? '▼' : '▶'}</span>
-              AI Queries
-            </h3>
-            {showAiQueries && !loadingPrompts && Object.keys(aiPrompts).length > 0 && (
-              <button
-                className="btn btn-primary btn-outline"
-                onClick={handleGenerateAllResponses}
-                disabled={generatingResponse !== null}
-              >
-                {generatingResponse !== null ? '⏳ Generating All...' : '🤖 Generate All Responses'}
-              </button>
+                      return (
+                        <tr 
+                          key={`row-${fieldKey}`} 
+                          className="financial-data-table-data-row financial-data-table-calculated-row"
+                        >
+                          <td 
+                            className="financial-data-table-metric-label"
+                            title={`CAGR and YOY Increases in ${metric.label}`}
+                          >
+                            {metric.label}
+                          </td>
+                          {years.map(year => {
+                            const increases = financialService.calculatePercentageIncrease(year, years, fieldKey, financialDataAll);
+                            // const increases = calculatePercentageIncrease(year, fieldKey);
+                            let isNegative = false;
+                            let displayValue = '';
+
+                            if (increases == null) {
+                              displayValue = '-';
+                            } else if (typeof increases === 'string' && increases.includes('-')) {
+                              displayValue = increases;
+                              isNegative = true;
+                            } else if (typeof increases === 'string' && !increases.includes('-')) {
+                              displayValue = increases;
+                              isNegative = false;
+                            } else if (typeof increases === 'number' && increases < 0) {
+                              isNegative = true;
+                              displayValue = `${increases.toFixed(1)}%`;
+                            } else if (typeof increases === 'number' && increases > 0) {
+                              displayValue = `${increases.toFixed(1)}%`;
+                            }
+
+                            return (
+                              <td 
+                                key={`${year}-${fieldKey}-increase`} 
+                                className="financial-data-table-cell"
+                              >
+                                <div 
+                                  className={`financial-data-table-calculated-value ${isNegative ? 'negative-value' : 'positive-value'}`}
+                                >
+                                  {displayValue}
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
-          
-          {showAiQueries && (
-          <>
-          {loadingPrompts ? (
-            <div className="ai-loading-message">
-              Loading AI prompts...
-            </div>
-          ) : Object.keys(aiPrompts).length === 0 ? (
-            <div className="ai-empty-message">
-              No AI prompts available for this stock.
-            </div>
-          ) : (
-            <table className="financial-table ai-prompts-table">
-              <thead>
-                <tr>
-                  <th className="ai-prompts-table-header-prompt">Prompts</th>
-                  <th className="ai-prompts-table-header-response">AI Response</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(aiPrompts).map(([Qid, prompt]) => 
-                  <tr key={Qid}>
-                    <td className="prompt-cell">
-                      <div className="prompt-text">
-                        {Qid} - {prompt}
-                      </div>
-                    </td>
-                    <td className="response-cell">
-                      <div className="response-container">
-                            {aiResponses[Qid] && (
-                            <div className="response-text">{aiResponses[Qid]}</div>
-                            )}
-                        <div className="response-button-container">
-                          <button
-                            className="btn btn-sm btn-outline"
-                            onClick={() => handleGenerateAIResponse(Qid)}
-                            disabled={generatingResponse !== null}
-                          >
-                            {generatingResponse === Qid 
-                              ? '⏳ Generating...' 
-                              : aiResponses[Qid] 
-                                ? '🔄 Re-Generate AI Response'
-                                : '🤖 Generate AI Response'
-                            }
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          )}
-          </>
-          )}
         </div>
-      </div>
+      )}
+
+
+      {selectedStock && (
+        <div className="section-separator">
+          <hr />
+        </div>
+      )}
+
+
+      {/* AI Queries Section */}
+      {selectedStock && (
+        <div className="section-container">
+          <div className="financial-ai-container stocks-list-container">
+            <div className="financial-heading-container">
+              <h4 
+                onClick={() => setShowAiQueries(!showAiQueries)}
+                className="financial-heading"
+              >
+                <span>{showAiQueries ? '▼' : '▶'}</span>
+                AI Queries
+              </h4>
+
+              {showAiQueries && !loadingPrompts && Object.keys(aiPrompts).length > 0 && (
+                <button
+                  className="link-btn link-btn-financial"
+                  onClick={handleGenerateAllResponses}
+                  disabled={generatingResponse !== null}
+                >
+                  {generatingResponse !== null 
+                    ? <><span>⏳</span>Generating All...</> 
+                    : <><span>🤖</span> Generate All Responses</>
+                  }
+                </button>
+              )}
+            </div>
+            
+            {showAiQueries && (
+              <div className="financial-ai-queries financial-ai-table-container">
+                {loadingPrompts ? (
+                  <div className="financial-ai-loading-msg">
+                    Loading AI prompts...
+                  </div>
+                ) : Object.keys(aiPrompts).length === 0 ? (
+                  <div className="financial-ai-empty-msg">
+                    No AI prompts available for this stock.
+                  </div>
+                ) : (
+                  <table className="financial-ai-table">
+                    <thead>
+                      <tr>
+                        <th>Prompts</th>
+                        <th>AI Response</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(aiPrompts).map(([Qid, prompt]) => 
+                        <tr 
+                          key={Qid}
+                          className="financial-ai-table-row"
+                        >
+                          <td className="financial-ai-prompt-cell">
+                            <div>
+                              {Qid} - {prompt}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="financial-ai-response">
+
+                              <div className="financial-ai-response-button">
+                                <button
+                                  className="link-btn link-btn-financial-ai"
+                                  onClick={() => handleGenerateAIResponse(Qid)}
+                                  disabled={generatingResponse !== null}
+                                >
+                                  {generatingResponse === Qid 
+                                    ? <><span>⏳</span>Generating...</> 
+                                    : aiResponses[Qid] 
+                                      ? <><span>🔄</span>Re-Generate AI Response</>
+                                      : <><span>🤖</span>Generate AI Response</>
+                                  }
+                                </button>
+                              </div>
+
+                                {aiResponses[Qid] && (
+                                  <div className="financial-ai-response-text">{aiResponses[Qid]}</div>
+                                )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

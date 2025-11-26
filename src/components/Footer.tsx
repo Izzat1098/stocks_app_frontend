@@ -7,15 +7,17 @@ const Footer: React.FC = () => {
   return (
     <footer className="footer">
       <div className="footer-content">
-        <p>&copy; {currentYear} ValuIntel. All rights reserved.</p>
-        <div className="footer-links">
+        <div className="footer-item footer-texts">
+          <p>&copy; {currentYear} ValuIntel. All rights reserved.</p>
+        </div>
+        <div className="footer-item footer-links">
           <Link to="/" className="footer-link">Privacy Policy</Link>
           <span className="footer-divider">|</span>
           <Link to="/" className="footer-link">Terms of Service</Link>
           <span className="footer-divider">|</span>
           <Link to="/" className="footer-link">Contact</Link>
         </div>
-        <div className="footer-social">
+        <div className="footer-item footer-social">
           <Link to ="/" rel="noopener noreferrer">🐦 X/Twitter</Link>
           <span className="footer-divider">|</span>
           <Link to ="/" rel="noopener noreferrer">💼 LinkedIn</Link>
