@@ -75,68 +75,69 @@ const RegisterPage: React.FC = () => {
 
   return (
     <div className="container">
-      <div className="card" style={{ maxWidth: '400px', margin: '2rem auto' }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>
+      <div className="login-container">
+        <h2>
           Register for Stock Tracker
         </h2>
         
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="username">Username</label>
-            <input
-              type="text"
-              id="username"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              required
-              disabled={loading}
-            />
-          </div>
+        <form className="login-form" onSubmit={handleSubmit}>
+          <div className="login-form-items">
+            <div className="login-form-item">
+              <label htmlFor="username">Username</label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                required
+                disabled={loading}
+              />
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              disabled={loading}
-            />
-          </div>
+            <div className="login-form-item">
+              <label htmlFor="email">Email</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                disabled={loading}
+              />
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              disabled={loading}
-              minLength={6}
-            />
+            <div className="login-form-item">
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                disabled={loading}
+                minLength={6}
+              />
+            </div>
           </div>
 
           {error && <div className="error">{error}</div>}
 
           <button
             type="submit"
-            className="btn btn-primary"
-            style={{ width: '100%', marginTop: '1rem' }}
+            className="link-btn"
             disabled={loading}
           >
             {loading ? 'Creating Account...' : 'Register'}
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+        <div className="login-register">
           <p>
             Already have an account?{' '}
-            <Link to="/login" style={{ color: '#007bff' }}>
+            <Link to="/login">
               Login here
             </Link>
           </p>

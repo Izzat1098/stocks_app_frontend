@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Line } from 'react-chartjs-2';
 import {
@@ -31,6 +31,7 @@ ChartJS.register(
 
 const FinancialPage: React.FC = () => {
   const location = useLocation();
+  const pasteOccurredRef = useRef<{[key: string]: boolean}>({});
   const [stocks, setStocks] = useState<StockData[]>([]);
   const [selectedStockId, setSelectedStockId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -329,6 +330,7 @@ const FinancialPage: React.FC = () => {
       try {
         //  fetch financial data from API/DB
         const data = await financialService.getFinancialData(selectedStockId, controller.signal);
+        // console.log('Fetched financial data:', data);
         
         if (isMounted && data) {
           // calculate derived metrics from fetched data
@@ -344,10 +346,11 @@ const FinancialPage: React.FC = () => {
           });
 
           // update states
+          // console.log('setFinancialData inside useEffect348:', data.data);
           setFinancialData(data.data);
-          console.log('financialData fetched:', data.data);
-          console.log('type of financialData:', typeof(financialData));
-          console.log('financialData : ', financialData);
+          // console.log('financialData fetched:', data.data);
+          // console.log('type of financialData:', typeof(financialData));
+          // console.log('financialData : ', financialData);
           setFinancialDataCalculated(calculatedMetrics);
           setFinancialDataAll(mergedData);
           setOriginalFinancialData(JSON.parse(JSON.stringify(data.data))); // Deep copy
@@ -358,8 +361,8 @@ const FinancialPage: React.FC = () => {
           setErrorForm('');
         } else {
           console.log('No financial data found for this stock, starting fresh');
-          console.log('type of financialData:', typeof(financialData));
-          console.log('financialData : ', financialData);
+          // console.log('type of financialData:', typeof(financialData));
+          // console.log('financialData : ', financialData);
         }
 
       } catch (error: any) {
@@ -500,6 +503,7 @@ const FinancialPage: React.FC = () => {
   // Handle stock selection change
   const handleStockChange = (stockId: number) => {
     // Clear previous data immediately
+    // console.log('setFinancialData to empty in handleStockChange')
     setFinancialData({});
     setYears([]);
     setInputValues({});
@@ -518,20 +522,26 @@ const FinancialPage: React.FC = () => {
 
   // Handle paste event for bulk data input
   const handlePaste = async (event: React.ClipboardEvent, year: string, metricKey: keyof FinancialData[string]) => {
+    console.log('Pasting data for year:', year, 'and metricKey:', metricKey);
     event.preventDefault();
+    
+    // Set flag to prevent blur handler
+    const inputKey = `${year}-${metricKey}`;
+    pasteOccurredRef.current[inputKey] = true;
     
     const pasteData = event.clipboardData.getData('text');
     // console.log('Pasted data:', pasteData);
     const lines = pasteData.trim().split('\n');
+    // console.log('Lines from pasted data:', lines);
 
-    // const metric = metrics.find(m => m.key === metricKey);
-    // if (!metric) return;
     const metricIndex = metrics.findIndex(m => m.key === metricKey);
     if (metricIndex < 0) return; // Invalid metricKey
     
     // If pasting multiple lines, try to map them to metrics
     if (lines.length > 1) {
+      console.log('pasting multiple lines: ', lines.length);
       const updatedData = { ...financialData };
+      // console.log(`original data: `, updatedData);
       
       // lines.forEach((line, lineIndex) => {
       for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
@@ -552,14 +562,30 @@ const FinancialPage: React.FC = () => {
           updatedData[year][metricKey] = value;
         }
       }
-      
+      // console.log('setFinancialData inside handlePaste:', updatedData);
       setFinancialData(updatedData);
 
     } else {
       // Single value paste
+      console.log('pasting single value of: ', pasteData);
       const value = parseFormattedNumber(pasteData.trim());
+      // console.log('parsed single value: ', value);
+      // console.log(`year: ${year}, metricKey: ${metricKey}`);
+      // console.log(`line569 updateFinancialData from handlePaste for year ${year}, metric ${metricKey}:`, value);
       updateFinancialData(year, metricKey, value);
     }
+    
+    // Clear the input value so it shows the formatted version
+    setInputValues(prev => {
+      const updated = { ...prev };
+      delete updated[inputKey];
+      return updated;
+    });
+    
+    // Reset the flag after a short delay
+    setTimeout(() => {
+      pasteOccurredRef.current[inputKey] = false;
+    }, 100);
   };
 
 
@@ -611,7 +637,8 @@ const FinancialPage: React.FC = () => {
         data: financialData,
         stock_id: selectedStockId,
       };
-
+      // console.log('Saving financial data:', financialDataToSave);
+      console.log('Saving financial data for stock id:', selectedStockId);
       await financialService.saveFinancialData(selectedStockId, financialDataToSave);
       
       // Update original data to reflect saved state
@@ -755,6 +782,7 @@ const FinancialPage: React.FC = () => {
 
   // Update financial data
   const updateFinancialData = (year: string, metric: keyof FinancialData[string], value: number) => {
+    // console.log(`Updating financial data for year ${year}, metric ${metric}, value ${value} by updateFinancialData`);
     setFinancialData(prev => ({
       ...prev,
       [year]: {
@@ -762,6 +790,7 @@ const FinancialPage: React.FC = () => {
         [metric]: value
       }
     }));
+    // console.log('Updated financialData line 774:', financialData);
   };
 
   // Start editing a year
@@ -791,6 +820,7 @@ const FinancialPage: React.FC = () => {
         updatedFinancialData[tempYearValue.trim()] = financialData[editingYear];
         delete updatedFinancialData[editingYear];
       }
+      // console.log('Updated financialData after saving year edit:', updatedFinancialData);
       setFinancialData(updatedFinancialData);
     }
     
@@ -822,9 +852,17 @@ const FinancialPage: React.FC = () => {
   // Handle input blur - format the value
   const handleInputBlur = (year: string, metricKey: keyof FinancialData[string]) => {
     const inputKey = `${year}-${metricKey}`;
+    
+    // Skip if paste just occurred
+    if (pasteOccurredRef.current[inputKey]) {
+      // console.log('Skipping blur handler - paste just occurred');
+      return;
+    }
+    
     const rawValue = inputValues[inputKey];
     if (rawValue !== undefined) {
       const numericValue = parseFormattedNumber(rawValue);
+      // console.log(`line839 updateFinancialData from handleInputBlur for year ${year}, metric ${metricKey}:`, numericValue);
       updateFinancialData(year, metricKey, numericValue);
       // Clear from inputValues to show formatted version
       setInputValues(prev => {

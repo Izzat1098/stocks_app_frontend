@@ -412,7 +412,7 @@ const StockPage: React.FC = () => {
                             </span>)
                         }
                       </td>
-                      <td>
+                      <td style={{ fontWeight: 'bold' }}>
                         {investmentLoading 
                           ? (<span className="loading-investment">Loading...</span>) 
                           : stock.investmentAction 

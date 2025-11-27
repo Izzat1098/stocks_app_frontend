@@ -266,8 +266,9 @@ export const financialService = {
 
   saveFinancialData: async (stockId: number, data: FinancialDataWithMeta): Promise<any> => {
     const financialData: FinancialDataWithMeta = { stock_id: data.stock_id, data: data.data };
-
+    console.log(`Saving financial data to url: api-url/stocks/${stockId}/financials`);
     const response = await api.post(`/stocks/${stockId}/financials`, financialData);
+    // console.log(`Saved financial data to url: api-url/stocks/${stockId}/financials`);
     return response.data;
   },
 
